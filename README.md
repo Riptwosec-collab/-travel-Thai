@@ -1,23 +1,20 @@
-# Luxury Thailand Travel Map Dashboard
+# เที่ยวไทย ครบทุกจังหวัด — Luxury Thailand Travel Map
 
-เว็บ Dashboard หน้าเดียวสำหรับ **“แผนที่เที่ยวไทย”** โทน Luxury Emerald & Gold ตามภาพอ้างอิง
+Multi-page Web Application สำหรับสำรวจสถานที่ท่องเที่ยว วางแผนการเดินทาง บันทึกจังหวัดที่เคยไป และติดตามสถิติการเที่ยวประเทศไทย
 
-## ไฟล์หลัก
-- `index.html` — เว็บตัวจริงแบบ HTML/CSS/JS เปิดได้ทันที
-- `native-dashboard.html` — หน้า entry สำรองที่พาไปยัง `index.html`
+## เวอร์ชันนี้มีอะไร
 
-## ฟีเจอร์
-- Layout แบบ Dashboard เต็มจอ 16:9
-- Header / Sidebar / Analytics cards / Donut chart / Activity progress
-- แผนที่ประเทศไทยแบบ SVG interactive
-- คลิกจังหวัดเพื่อเปลี่ยน Detail Panel
-- Highlight จังหวัดเชียงใหม่
-- ปุ่มสถานะ “ไปแล้ว” และ “อยากไป”
-- Floating AI Travel Assistant
-- โทนสี deep emerald, dark forest green, champagne gold และ soft golden glow
+- Single-file SPA: `index.html`
+- Design System เดียวกันทั้งเว็บ: Deep Emerald / Champagne Gold / Premium Glass / Soft Golden Glow
+- เมนูหลักครบ: หน้าหลัก, แผนที่, จังหวัด, สถานที่, กิจกรรม, แรงบันดาลใจ, แผนการเดินทาง, บันทึกการเดินทาง, ทริปของฉัน, รายการโปรด, คอมมูนิตี้, โปรไฟล์, สถิติ, แจ้งเตือน, ตั้งค่า, ค้นหา, Login, Onboarding
+- Interactive Thailand Map พร้อม GeoJSON loader และ fallback map
+- จังหวัด/สถานที่/กิจกรรม/ทริป/สถิติ/Journal/Profile/Community UI
+- สถานะจังหวัด: ไปแล้ว, อยากไป, กำลังวางแผน, ยังไม่ไป
+- Responsive: Desktop, Tablet, Mobile bottom navigation
+- UI States preview: Default, Hover, Active, Disabled, Loading, Skeleton, Empty, Error, Success, Offline
 
-## วิธีเปิดใช้งาน
-เปิดไฟล์ `index.html` ใน browser ได้ทันที หรือใช้ GitHub Pages จาก branch `main` หากต้องการเผยแพร่เป็นเว็บไซต์
+## วิธีเปิด
 
-## หมายเหตุ
-แผนที่ในไฟล์นี้เป็น interactive SVG mockup สำหรับ prototype/web presentation หากต้องการความแม่นยำระดับ GIS สามารถต่อ GeoJSON จังหวัดจริงเพิ่มเติมภายหลังได้
+เปิดไฟล์ `index.html` ใน Browser ได้ทันที หรือ Deploy เป็น static site บน GitHub Pages / Vercel / Netlify
+
+> หมายเหตุ: แผนที่จังหวัดจริงจะโหลดผ่าน GeoJSON เมื่อมีอินเทอร์เน็ตและ CORS เปิดใช้งาน ถ้าโหลดไม่ได้ ระบบใช้ fallback map เพื่อให้หน้าไม่พัง
