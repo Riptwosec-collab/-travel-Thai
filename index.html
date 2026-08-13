@@ -9,10 +9,11 @@
 </style>
 </head>
 <body>
-<div class="loader" id="loader"><div class="card"><div class="logo">เที่ยวไทย ครบทุกจังหวัด</div><div class="muted">กำลังปรับขนาดให้พอดีจอ...</div></div></div>
+<div class="loader" id="loader"><div class="card"><div class="logo">เที่ยวไทย ครบทุกจังหวัด</div><div class="muted">กำลังปรับขนาดและเปิดระบบเมนู...</div></div></div>
 <iframe class="frame" id="frame" title="Thailand Travel Dashboard"></iframe>
 <script>
 const SOURCE='https://raw.githubusercontent.com/Riptwosec-collab/-travel-Thai/3ffd9b7b30dcadfd7c0f014415664c912703c4c5/index.html';
+const ROUTER_SOURCE='https://raw.githubusercontent.com/Riptwosec-collab/-travel-Thai/main/menu-router.js?ts='+Date.now();
 const fitPatch=`
 <style id="fit-screen-patch">
 html,body{width:100%!important;height:100%!important;overflow:hidden!important;background:#020f0c!important}.app{transform-origin:0 0!important;will-change:transform}.bottom{transform-origin:bottom left!important;will-change:transform}.toast{transform-origin:bottom right!important}.side button{height:48px!important;margin:2px 0!important}.top{min-height:78px!important}.left{gap:10px!important}.panel{border-radius:16px!important}.hero{height:232px!important}.place{min-height:132px!important}.high{min-height:60px!important}.cta button{height:52px!important}.promo{min-height:150px!important}.donut{width:116px!important;height:116px!important}.donut:after{inset:24px!important}.stat{padding:8px!important;margin:7px 0!important}.body{padding:13px 14px!important}.scroll{padding:12px!important}.thai{height:88%!important;width:min(82%,650px)!important}.compass{width:92px!important;height:92px!important;bottom:42px!important}.bottom{bottom:10px!important}
@@ -51,10 +52,16 @@ const fitScript=`
   const loader=document.getElementById('loader');
   const frame=document.getElementById('frame');
   try{
-    const res=await fetch(SOURCE,{cache:'no-store'});
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    let html=await res.text();
-    html=html.replace('</head>',fitPatch+'</head>').replace('</body>',fitScript+'</body>');
+    const [pageRes,routerRes]=await Promise.all([
+      fetch(SOURCE,{cache:'no-store'}),
+      fetch(ROUTER_SOURCE,{cache:'no-store'})
+    ]);
+    if(!pageRes.ok) throw new Error('Dashboard HTTP '+pageRes.status);
+    let html=await pageRes.text();
+    let routerCode='';
+    if(routerRes.ok) routerCode=await routerRes.text();
+    const routerScript=routerCode?'<script>'+routerCode.replace(/<\/script/gi,'<\\/script')+'<\/script>':'';
+    html=html.replace('</head>',fitPatch+'</head>').replace('</body>',fitScript+routerScript+'</body>');
     frame.srcdoc=html;
     frame.onload=()=>{loader.style.display='none';frame.style.display='block'};
   }catch(err){
