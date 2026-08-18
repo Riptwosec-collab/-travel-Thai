@@ -32,12 +32,39 @@ export interface Place {
   tags: string[];
 }
 
+export interface TripMoneyRange {
+  min?: number;
+  max?: number;
+  label?: string;
+}
+
+export interface TripScheduleItem {
+  id: string;
+  time?: string;
+  title: string;
+  detail?: string;
+  activities?: string[];
+  notes?: string[];
+}
+
+export interface TripDayBudgetItem {
+  label: string;
+  min?: number;
+  max?: number;
+  text?: string;
+}
+
 export interface TripDay {
   day: number;
   placeIds: string[];
   note?: string;
   title?: string;
   date?: string;
+  route?: string;
+  schedule?: TripScheduleItem[];
+  accommodation?: string;
+  budgetRange?: TripMoneyRange;
+  budgetItems?: TripDayBudgetItem[];
 }
 
 export interface TripBudgetBreakdown {
@@ -46,6 +73,19 @@ export interface TripBudgetBreakdown {
   food?: number;
   activities?: number;
   other?: number;
+}
+
+export interface TripAccommodationNight {
+  night: number;
+  location: string;
+}
+
+export interface TripBudgetTier {
+  label: string;
+  min?: number;
+  max?: number;
+  perPerson?: boolean;
+  text?: string;
 }
 
 export interface Trip {
@@ -67,6 +107,19 @@ export interface Trip {
   destinationSummary?: string;
   autoFilled?: boolean;
   autoFillSource?: string;
+
+  // Detailed itinerary fields. Optional to preserve compatibility with older saved trips.
+  routeText?: string;
+  routeStops?: string[];
+  overviewBudgetRange?: TripMoneyRange;
+  attractionsSummary?: string[];
+  accommodationPlan?: TripAccommodationNight[];
+  budgetSummaryLines?: string[];
+  budgetTiers?: TripBudgetTier[];
+  packingList?: string[];
+  importantNotes?: string[];
+  sourceText?: string;
+  importMode?: 'manual' | 'autofill' | 'text-import';
 }
 
 export interface JournalEntry {
