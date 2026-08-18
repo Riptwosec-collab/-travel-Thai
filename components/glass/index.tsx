@@ -1,8 +1,8 @@
-import React, { PropsWithChildren, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { GLASS, GLASS_RADIUS, GLASS_SPACING, glassSurface } from '@/constants/glassTheme';
+import { GLASS, GLASS_RADIUS, glassSurface } from '@/constants/glassTheme';
 
 export function GlassScreen({children,image}:{children:React.ReactNode;image:string}){
   const zoom=useRef(new Animated.Value(0)).current;
@@ -89,7 +89,7 @@ export function GlassPageEnter({children,delay=0,style}:{children:React.ReactNod
 }
 
 export function GlassHeader({eyebrow,title,subtitle,right}:{eyebrow?:string;title:string;subtitle?:string;right?:React.ReactNode}){
-  return <View style={styles.header}>{<View style={{flex:1,minWidth:0}}>{eyebrow&&<Text style={styles.eyebrow}>{eyebrow}</Text>}<Text style={styles.headerTitle}>{title}</Text>{subtitle&&<Text style={styles.headerSub}>{subtitle}</Text>}</View>}{right}</View>;
+  return <View style={styles.header}><View style={{flex:1,minWidth:0}}>{eyebrow&&<Text style={styles.eyebrow}>{eyebrow}</Text>}<Text style={styles.headerTitle}>{title}</Text>{subtitle&&<Text style={styles.headerSub}>{subtitle}</Text>}</View>{right}</View>;
 }
 
 export const glassText = {
@@ -110,8 +110,8 @@ const styles=StyleSheet.create({
   pressFill:{width:'100%',height:'100%',flexDirection:'row',alignItems:'center',justifyContent:'center'},
   circle:{alignItems:'center',justifyContent:'center',overflow:'hidden'},
   search:{minHeight:58,borderRadius:GLASS_RADIUS.md,flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:16,overflow:'hidden'},
-  searchInput:{flex:1;color:GLASS.white,fontSize:14,paddingVertical:0},
-  searchPlaceholder:{flex:1;color:'rgba(255,255,255,.82)',fontSize:14},
+  searchInput:{flex:1,color:GLASS.white,fontSize:14,paddingVertical:0},
+  searchPlaceholder:{flex:1,color:'rgba(255,255,255,.82)',fontSize:14},
   searchTail:{width:34,height:34,borderRadius:17,backgroundColor:'rgba(255,255,255,.12)',alignItems:'center',justifyContent:'center'},
   chip:{minHeight:36,borderRadius:GLASS_RADIUS.pill,paddingHorizontal:13,alignItems:'center',justifyContent:'center',backgroundColor:GLASS.glassSoft,borderWidth:1,borderColor:GLASS.border},
   chipActive:{backgroundColor:'rgba(99,232,244,.34)',borderColor:'rgba(255,255,255,.58)'},
