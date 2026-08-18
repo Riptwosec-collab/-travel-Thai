@@ -1,6 +1,7 @@
 import 'react-native-reanimated';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GLASS } from '@/constants/glassTheme';
 
 export default function RootLayout(){
  return <>
@@ -10,7 +11,7 @@ export default function RootLayout(){
    animation:'fade',
    gestureEnabled:true,
    fullScreenGestureEnabled:true,
-   contentStyle:{backgroundColor:'#075A6E'},
+   contentStyle:{backgroundColor:GLASS.tealNight},
   }}>
    <Stack.Screen name="(tabs)" options={{animation:'fade'}}/>
    <Stack.Screen name="place-detail" options={{presentation:'modal',animation:'slide_from_bottom',gestureEnabled:true}}/>
