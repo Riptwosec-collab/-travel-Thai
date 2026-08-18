@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "เที่ยวไทย",
+    "slug": "travel-thai",
+    "version": "2.0.0",
+    "orientation": "portrait",
+    "scheme": "travelthai",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "web": { "bundler": "metro", "output": "static" },
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true },
+    "ios": { "supportsTablet": true },
+    "android": { "adaptiveIcon": { "backgroundColor": "#0B2D24" } },
+    "extra": {
+      "geoJsonUrl": "https://raw.githubusercontent.com/chingchai/OpenGISData-Thailand/master/provinces.geojson"
+    }
+  }
+}

@@ -1,53 +1,30 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, FlatList } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useMemo } from 'react';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { usePlaceStore } from '../../store/usePlaceStore';
-import { PlaceCard } from '../../components/PlaceCard';
-import { COLORS } from '../../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import PlaceCard from '@/components/PlaceCard';
+import { PLACES, PROVINCES } from '@/data/catalog';
+import { COLORS, RADIUS, SHADOW, SPACING } from '@/constants/theme';
+import { useTravelStore } from '@/store/useTravelStore';
 
-export default function HomeScreen() {
-  const { places, searchQuery, setSearchQuery } = usePlaceStore();
-  const filteredPlaces = places.filter(p => p.name.includes(searchQuery) || p.province.includes(searchQuery));
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        <View style={styles.header}>
-          <Text style={styles.greeting}>สวัสดี, นักเดินทาง! 👋</Text>
-          <Text style={styles.subGreeting}>ไปค้นหาประสบการณ์ใหม่ในไทยกันเถอะ</Text>
-        </View>
-
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color={COLORS.textMuted} />
-          <TextInput style={styles.searchInput} placeholder="ค้นหาสถานที่ เช่น เชียงใหม่, ทะเล..." value={searchQuery} onChangeText={setSearchQuery} />
-        </View>
-
-        <Text style={styles.sectionTitle}>แนะนำที่เที่ยว 🏝️</Text>
-        <FlatList
-          data={filteredPlaces} keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <PlaceCard place={item} />}
-          horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.placesList}
-        />
-        
-        <Text style={styles.sectionTitle}>ฮิตติดเทรนด์ 🔥</Text>
-        <FlatList
-          data={[...filteredPlaces].reverse()} keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <PlaceCard place={item} />}
-          horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.placesList}
-        />
-      </ScrollView>
-    </SafeAreaView>
-  );
+export default function Home(){
+ const router=useRouter();const {visitedProvinceIds,wishlistProvinceIds,visitedPlaceIds,wishlistPlaceIds,preferences}=useTravelStore();
+ const recommended=useMemo(()=>{const favorite=new Set(preferences.interests);return [...PLACES].sort((a,b)=>Number(favorite.has(b.category))-Number(favorite.has(a.category))).slice(0,8)},[preferences.interests]);
+ const progress=Math.round(visitedProvinceIds.length/77*100);
+ return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+  <View style={s.header}><View><Text style={s.hello}>สวัสดี นักเดินทาง</Text><Text style={s.sub}>วันนี้อยากไปเที่ยวที่ไหน?</Text></View><Pressable style={s.avatar} onPress={()=>router.push('/account')}><Ionicons name="person" size={22} color={COLORS.primary}/></Pressable></View>
+  <Pressable style={s.search} onPress={()=>router.push('/search')}><Ionicons name="search" size={20} color={COLORS.textMuted}/><Text style={s.searchText}>ค้นหาจังหวัด สถานที่ หรือกิจกรรม</Text><Ionicons name="options" size={19} color={COLORS.primary}/></Pressable>
+  <View style={s.hero}><View style={{flex:1}}><Text style={s.heroEyebrow}>THAILAND PROGRESS</Text><Text style={s.heroTitle}>{visitedProvinceIds.length} / 77 จังหวัด</Text><Text style={s.heroDesc}>ออกไปเก็บความทรงจำให้ครบทุกจังหวัด</Text><View style={s.progress}><View style={[s.progressFill,{width:`${Math.max(3,progress)}%`}]}/></View></View><View style={s.progressCircle}><Text style={s.progressNum}>{progress}%</Text></View></View>
+  <View style={s.metrics}><Metric icon="checkmark-circle" label="ไปแล้ว" value={`${visitedPlaceIds.length} ที่`}/><Metric icon="heart" label="อยากไป" value={`${wishlistPlaceIds.length} ที่`}/><Metric icon="map" label="จังหวัด" value={`${wishlistProvinceIds.length} รอไป`}/></View>
+  <Text style={s.section}>ทางลัด</Text><View style={s.quick}><Quick icon="map" label="แผนที่ 77 จังหวัด" onPress={()=>router.push('/(tabs)/map')}/><Quick icon="calendar" label="วางแผนทริป" onPress={()=>router.push('/(tabs)/trips')}/><Quick icon="book" label="บันทึกทริป" onPress={()=>router.push('/journal')}/><Quick icon="stats-chart" label="สถิติของฉัน" onPress={()=>router.push('/analytics')}/></View>
+  <View style={s.rowTitle}><Text style={s.section}>แนะนำสำหรับคุณ</Text><Pressable onPress={()=>router.push('/search')}><Text style={s.link}>ดูทั้งหมด</Text></Pressable></View>
+  <FlatList data={recommended} keyExtractor={x=>x.id} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:14,paddingBottom:8}} renderItem={({item})=><View style={{width:260}}><PlaceCard place={item} compact/></View>}/>
+  <View style={s.rowTitle}><Text style={s.section}>จังหวัดน่าไปต่อ</Text><Pressable onPress={()=>router.push('/(tabs)/map')}><Text style={s.link}>เปิดแผนที่</Text></Pressable></View>
+  <View style={s.provinceGrid}>{PROVINCES.filter(p=>preferences.favoriteRegions.includes(p.region)).slice(0,6).map(p=><Pressable key={p.id} style={s.province} onPress={()=>router.push({pathname:'/province-detail',params:{id:p.id}})}><Text style={s.provinceName}>{p.nameTh}</Text><Text style={s.provinceRegion}>{p.region}</Text><Ionicons name="chevron-forward" size={18} color={COLORS.primary}/></Pressable>)}</View>
+  {!preferences.onboardingDone&&<Pressable style={s.personalize} onPress={()=>router.push('/onboarding')}><Ionicons name="sparkles" size={22} color={COLORS.rating}/><View style={{flex:1}}><Text style={s.personalizeTitle}>ปรับคำแนะนำให้ตรงกับคุณ</Text><Text style={s.personalizeDesc}>เลือกสไตล์เที่ยว งบ และภาคที่ชอบ ใช้เวลาไม่ถึง 1 นาที</Text></View><Ionicons name="arrow-forward" size={20} color={COLORS.primary}/></Pressable>}
+ </ScrollView></SafeAreaView>
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { padding: 24, paddingBottom: 16 },
-  greeting: { fontSize: 28, fontWeight: '900', color: COLORS.textDark },
-  subGreeting: { fontSize: 16, color: COLORS.textMuted, marginTop: 4, fontWeight: '500' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.card, marginHorizontal: 24, paddingHorizontal: 16, height: 56, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
-  searchInput: { flex: 1, marginLeft: 12, fontSize: 16, fontWeight: '500' },
-  sectionTitle: { fontSize: 22, fontWeight: '800', color: COLORS.textDark, marginHorizontal: 24, marginTop: 32, marginBottom: 16 },
-  placesList: { paddingLeft: 24, paddingRight: 8 },
-});
+function Metric({icon,label,value}:{icon:any;label:string;value:string}){return <View style={s.metric}><Ionicons name={icon} size={20} color={COLORS.primary}/><Text style={s.metricLabel}>{label}</Text><Text style={s.metricValue}>{value}</Text></View>}
+function Quick({icon,label,onPress}:{icon:any;label:string;onPress:()=>void}){return <Pressable style={s.quickCard} onPress={onPress}><View style={s.quickIcon}><Ionicons name={icon} size={22} color={COLORS.primary}/></View><Text style={s.quickText}>{label}</Text></Pressable>}
+const s=StyleSheet.create({safe:{flex:1,backgroundColor:COLORS.background},content:{padding:SPACING.lg,paddingBottom:120,gap:16},header:{flexDirection:'row',justifyContent:'space-between',alignItems:'center'},hello:{fontSize:28,fontWeight:'900',color:COLORS.text},sub:{fontSize:15,color:COLORS.textMuted,marginTop:3},avatar:{width:44,height:44,borderRadius:22,backgroundColor:'#E0F5F6',alignItems:'center',justifyContent:'center'},search:{height:54,borderRadius:RADIUS.md,backgroundColor:COLORS.surface,flexDirection:'row',alignItems:'center',paddingHorizontal:16,gap:10,borderWidth:1,borderColor:COLORS.border,...SHADOW},searchText:{flex:1,color:COLORS.textMuted},hero:{borderRadius:RADIUS.lg,backgroundColor:COLORS.dark,padding:22,flexDirection:'row',alignItems:'center',gap:16},heroEyebrow:{fontSize:11,fontWeight:'900',letterSpacing:1.5,color:'#9EDBD1'},heroTitle:{fontSize:30,fontWeight:'900',color:'#fff',marginTop:7},heroDesc:{fontSize:13,color:'#C6DAD5',marginTop:5},progress:{height:7,borderRadius:9,backgroundColor:'#24483F',overflow:'hidden',marginTop:15},progressFill:{height:'100%',backgroundColor:COLORS.gold},progressCircle:{width:72,height:72,borderRadius:36,borderWidth:7,borderColor:COLORS.gold,alignItems:'center',justifyContent:'center'},progressNum:{color:'#fff',fontWeight:'900',fontSize:16},metrics:{flexDirection:'row',gap:10},metric:{flex:1,minHeight:90,borderRadius:RADIUS.md,backgroundColor:COLORS.surface,padding:13,borderWidth:1,borderColor:COLORS.border},metricLabel:{fontSize:12,color:COLORS.textMuted,marginTop:7},metricValue:{fontSize:16,fontWeight:'900',color:COLORS.text,marginTop:2},section:{fontSize:20,fontWeight:'900',color:COLORS.text},quick:{flexDirection:'row',gap:10,flexWrap:'wrap'},quickCard:{width:'48%',backgroundColor:COLORS.surface,padding:14,borderRadius:RADIUS.md,borderWidth:1,borderColor:COLORS.border,flexDirection:'row',alignItems:'center',gap:10},quickIcon:{width:38,height:38,borderRadius:12,backgroundColor:'#E7F6F6',alignItems:'center',justifyContent:'center'},quickText:{fontWeight:'800',color:COLORS.text,flex:1},rowTitle:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:4},link:{fontWeight:'800',color:COLORS.primary},provinceGrid:{gap:10},province:{backgroundColor:COLORS.surface,borderRadius:RADIUS.md,padding:15,borderWidth:1,borderColor:COLORS.border,flexDirection:'row',alignItems:'center'},provinceName:{fontWeight:'900',color:COLORS.text,fontSize:16,minWidth:130},provinceRegion:{color:COLORS.textMuted,flex:1},personalize:{backgroundColor:'#FFF8E9',borderRadius:RADIUS.md,padding:16,flexDirection:'row',alignItems:'center',gap:12,borderWidth:1,borderColor:'#F4E0AE'},personalizeTitle:{fontWeight:'900',color:COLORS.text},personalizeDesc:{fontSize:12,color:COLORS.textMuted,marginTop:3,lineHeight:18}});

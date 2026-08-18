@@ -1,97 +1,33 @@
 import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Platform } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import { usePlaceStore } from '../store/usePlaceStore';
-import { COLORS } from '../constants/theme';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { PLACES } from '@/data/catalog';
+import { COLORS, RADIUS, SHADOW, SPACING } from '@/constants/theme';
+import { useTravelStore } from '@/store/useTravelStore';
+import PlaceCard from '@/components/PlaceCard';
 
-export default function PlaceDetail() {
-  const { id } = useLocalSearchParams();
-  const router = useRouter();
-  const { places, toggleWishlist, toggleVisited } = usePlaceStore();
-  const place = places.find(p => p.id === id);
-
-  if (!place) return null;
-
-  return (
-    <View style={styles.container}>
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: place.image }} style={styles.heroImage} />
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <BlurView intensity={80} tint="light" style={styles.blurBtn}>
-              <Ionicons name="chevron-back" size={24} color="#000" />
-            </BlurView>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.content}>
-          <View style={styles.headerRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.title}>{place.name}</Text>
-              <Text style={styles.location}><Ionicons name="location" size={16} /> {place.province}, ประเทศไทย</Text>
-            </View>
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={16} color={COLORS.rating} />
-              <Text style={styles.ratingText}>{place.rating}</Text>
-            </View>
-          </View>
-
-          <View style={styles.tagContainer}>
-            <View style={styles.tag}><Text style={styles.tagText}>{place.category}</Text></View>
-          </View>
-
-          <Text style={styles.desc}>{place.description}</Text>
-        </View>
-      </ScrollView>
-
-      {/* Action Buttons at Bottom */}
-      <BlurView intensity={90} tint="light" style={styles.bottomBar}>
-        <TouchableOpacity 
-          style={[styles.btn, place.isVisited ? styles.btnVisited : styles.btnOutline]} 
-          onPress={() => toggleVisited(place.id)}
-        >
-          <Ionicons name="checkmark-circle" size={20} color={place.isVisited ? '#fff' : COLORS.textDark} />
-          <Text style={[styles.btnText, { color: place.isVisited ? '#fff' : COLORS.textDark }]}>
-            {place.isVisited ? 'เคยไปแล้ว' : 'ทำเครื่องหมายว่าไปมาแล้ว'}
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.btn, styles.btnPrimary]} 
-          onPress={() => toggleWishlist(place.id)}
-        >
-          <Ionicons name={place.isWishlist ? "heart" : "heart-outline"} size={20} color="#fff" />
-          <Text style={[styles.btnText, { color: '#fff' }]}>
-            {place.isWishlist ? 'บันทึกแล้ว' : 'บันทึกใน Wishlist'}
-          </Text>
-        </TouchableOpacity>
-      </BlurView>
-    </View>
-  );
+export default function PlaceDetail(){
+ const {id}=useLocalSearchParams<{id:string}>();const router=useRouter();const place=PLACES.find(p=>p.id===id);const {visitedPlaceIds,wishlistPlaceIds,toggleVisitedPlace,toggleWishlistPlace}=useTravelStore();
+ if(!place)return <SafeAreaView style={s.safe}><Text>ไม่พบสถานที่</Text></SafeAreaView>;
+ const visited=visitedPlaceIds.includes(place.id),wish=wishlistPlaceIds.includes(place.id);const nearby=PLACES.filter(p=>p.provinceId===place.provinceId&&p.id!==place.id).slice(0,3);
+ const openMap=()=>Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`);
+ return <SafeAreaView style={s.safe} edges={['bottom']}><ScrollView contentContainerStyle={{paddingBottom:120}} showsVerticalScrollIndicator={false}>
+  <View style={s.hero}><Image source={place.image} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk"/><View style={s.heroShade}/><Pressable style={s.back} onPress={()=>router.back()}><Ionicons name="chevron-back" size={23} color="#fff"/></Pressable><Pressable style={s.saveTop} onPress={()=>toggleWishlistPlace(place.id)}><Ionicons name={wish?'heart':'heart-outline'} size={22} color={wish?COLORS.wishlist:'#fff'}/></Pressable><View style={s.heroText}><Text style={s.category}>{place.category}</Text><Text style={s.title}>{place.name}</Text><Text style={s.location}><Ionicons name="location" size={14}/> {place.province}, ประเทศไทย</Text></View></View>
+  <View style={s.content}>
+   <View style={s.ratingRow}><View><Text style={s.rating}>★ {place.rating}</Text><Text style={s.muted}>{place.reviewCount.toLocaleString()} รีวิว</Text></View><Pressable style={s.mapBtn} onPress={openMap}><Ionicons name="navigate" size={18} color={COLORS.primary}/><Text style={s.mapBtnText}>เปิดแผนที่</Text></Pressable></View>
+   <Text style={s.desc}>{place.description}</Text>
+   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:10}}>{place.images.map((img,i)=><Image key={i} source={img} style={s.gallery} contentFit="cover" cachePolicy="memory-disk"/>)}</ScrollView>
+   <Text style={s.section}>ข้อมูลสำหรับการเดินทาง</Text><View style={s.infoGrid}><Info icon="time" label="เวลาเปิด" value={place.openingHours}/><Info icon="cash" label="ค่าเข้า" value={place.ticketPrice}/><Info icon="sunny" label="ช่วงที่เหมาะ" value={place.bestTime}/><Info icon="hourglass" label="เวลาเที่ยว" value={place.duration}/></View>
+   <Text style={s.section}>สิ่งอำนวยความสะดวก</Text><View style={s.tags}>{place.facilities.map(x=><Text style={s.tag} key={x}>✓ {x}</Text>)}</View>
+   <Text style={s.section}>แท็ก</Text><View style={s.tags}>{place.tags.map(x=><Text style={s.tagAlt} key={x}>#{x}</Text>)}</View>
+   <Text style={s.section}>ใกล้เคียง</Text>{nearby.length?<View style={{gap:12}}>{nearby.map(p=><PlaceCard key={p.id} place={p} compact/>)}</View>:<Text style={s.muted}>กำลังเพิ่มสถานที่ใกล้เคียงในจังหวัดนี้</Text>}
+  </View>
+ </ScrollView>
+ <View style={s.bottom}><Pressable style={[s.action,visited?s.visited:s.outline]} onPress={()=>toggleVisitedPlace(place.id)}><Ionicons name="checkmark-circle" size={19} color={visited?'#fff':COLORS.text}/><Text style={[s.actionText,{color:visited?'#fff':COLORS.text}]}>{visited?'ไปแล้ว':'ทำเครื่องหมายว่าไปแล้ว'}</Text></Pressable><Pressable style={[s.action,s.wish]} onPress={()=>toggleWishlistPlace(place.id)}><Ionicons name={wish?'heart':'heart-outline'} size={19} color="#fff"/><Text style={[s.actionText,{color:'#fff'}]}>{wish?'อยู่ใน Wishlist':'อยากไป'}</Text></Pressable></View>
+ </SafeAreaView>
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  imageContainer: { height: 400, width: '100%', position: 'relative' },
-  heroImage: { width: '100%', height: '100%' },
-  backBtn: { position: 'absolute', top: 50, left: 20, borderRadius: 20, overflow: 'hidden' },
-  blurBtn: { padding: 10 },
-  content: { padding: 24, backgroundColor: COLORS.background, borderTopLeftRadius: 30, borderTopRightRadius: 30, marginTop: -30 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  title: { fontSize: 28, fontWeight: '900', color: COLORS.textDark },
-  location: { fontSize: 16, color: COLORS.textMuted, marginTop: 8, fontWeight: '500' },
-  ratingBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFBEB', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 },
-  ratingText: { marginLeft: 6, fontWeight: '800', fontSize: 16, color: COLORS.textDark },
-  tagContainer: { flexDirection: 'row', marginTop: 16 },
-  tag: { backgroundColor: '#E0F2FE', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  tagText: { color: COLORS.secondary, fontWeight: '700' },
-  desc: { marginTop: 24, fontSize: 16, lineHeight: 28, color: COLORS.textMuted },
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: Platform.OS === 'ios' ? 40 : 20, flexDirection: 'row', gap: 12, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
-  btn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 16, gap: 8 },
-  btnOutline: { backgroundColor: 'rgba(255,255,255,0.7)', borderWidth: 1, borderColor: COLORS.border },
-  btnVisited: { backgroundColor: COLORS.visited },
-  btnPrimary: { backgroundColor: COLORS.wishlist },
-  btnText: { fontWeight: '700', fontSize: 16 },
-});
+function Info({icon,label,value}:{icon:any;label:string;value:string}){return <View style={s.info}><Ionicons name={icon} size={19} color={COLORS.primary}/><Text style={s.infoLabel}>{label}</Text><Text style={s.infoValue}>{value}</Text></View>}
+const s=StyleSheet.create({safe:{flex:1,backgroundColor:COLORS.background},hero:{height:390,position:'relative'},heroShade:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(4,12,16,.32)',borderBottomWidth:130,borderBottomColor:'rgba(4,12,16,.56)'},back:{position:'absolute',left:18,top:52,width:44,height:44,borderRadius:22,backgroundColor:'rgba(0,0,0,.34)',alignItems:'center',justifyContent:'center'},saveTop:{position:'absolute',right:18,top:52,width:44,height:44,borderRadius:22,backgroundColor:'rgba(0,0,0,.34)',alignItems:'center',justifyContent:'center'},heroText:{position:'absolute',left:22,right:22,bottom:24},category:{color:'#fff',fontSize:12,fontWeight:'900',backgroundColor:'rgba(255,255,255,.18)',alignSelf:'flex-start',paddingHorizontal:10,paddingVertical:5,borderRadius:999},title:{color:'#fff',fontSize:32,fontWeight:'900',marginTop:8},location:{color:'rgba(255,255,255,.88)',marginTop:5},content:{padding:SPACING.lg,gap:16},ratingRow:{flexDirection:'row',justifyContent:'space-between',alignItems:'center'},rating:{fontSize:20,fontWeight:'900',color:COLORS.text},muted:{fontSize:13,color:COLORS.textMuted,marginTop:3},mapBtn:{height:42,borderRadius:999,borderWidth:1,borderColor:COLORS.border,backgroundColor:COLORS.surface,flexDirection:'row',alignItems:'center',gap:6,paddingHorizontal:13},mapBtnText:{color:COLORS.primary,fontWeight:'800'},desc:{fontSize:16,lineHeight:27,color:COLORS.textMuted},gallery:{width:210,height:135,borderRadius:RADIUS.md,backgroundColor:'#DCE5E6'},section:{fontSize:19,fontWeight:'900',color:COLORS.text,marginTop:5},infoGrid:{flexDirection:'row',flexWrap:'wrap',gap:10},info:{width:'48%',backgroundColor:COLORS.surface,borderRadius:RADIUS.md,borderWidth:1,borderColor:COLORS.border,padding:13},infoLabel:{fontSize:11,color:COLORS.textMuted,marginTop:7},infoValue:{fontSize:13,fontWeight:'800',color:COLORS.text,marginTop:2},tags:{flexDirection:'row',flexWrap:'wrap',gap:8},tag:{backgroundColor:'#E8F7F1',color:COLORS.visited,paddingHorizontal:11,paddingVertical:7,borderRadius:999,fontWeight:'700'},tagAlt:{backgroundColor:'#EAF5F7',color:COLORS.primaryDark,paddingHorizontal:11,paddingVertical:7,borderRadius:999,fontWeight:'700'},bottom:{position:'absolute',left:0,right:0,bottom:0,backgroundColor:'rgba(255,255,255,.98)',borderTopWidth:1,borderTopColor:COLORS.border,padding:14,paddingBottom:22,flexDirection:'row',gap:10,...SHADOW},action:{flex:1,minHeight:52,borderRadius:RADIUS.md,alignItems:'center',justifyContent:'center',flexDirection:'row',gap:7,paddingHorizontal:9},visited:{backgroundColor:COLORS.visited},outline:{backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border},wish:{backgroundColor:COLORS.wishlist},actionText:{fontWeight:'900',fontSize:13}});
