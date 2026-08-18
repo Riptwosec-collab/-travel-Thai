@@ -22,6 +22,7 @@ export default function PlaceDetail(){
  const nearby=PLACES.filter(p=>p.provinceId===place.provinceId&&p.id!==place.id).slice(0,3);
  const openMap=()=>Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`);
  const openReviews=()=>Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name+' '+place.province)}`);
+ const openInfo=()=>Linking.openURL(`https://www.google.com/search?q=${encodeURIComponent(place.name+' '+place.province+' ข้อมูลท่องเที่ยว')}`);
  const share=()=>Share.share({message:`${place.name} · ${place.province}\n${place.description}`});
 
  return <GlassScreen image={place.image}>
@@ -39,7 +40,7 @@ export default function PlaceDetail(){
 
      <GlassPageEnter delay={80}>
       <View style={s.actionGrid}>
-       <Action icon="information-circle" label="ข้อมูล" sub="Info" onPress={()=>{}}/>
+       <Action icon="information-circle" label="ข้อมูล" sub="Info" onPress={openInfo}/>
        <Action icon="walk" label="การเดินทาง" sub="How to go" onPress={openMap}/>
        <Action icon="chatbubble-ellipses" label="รีวิว" sub="Reviews" onPress={openReviews}/>
        <Action icon="create" label="บันทึก" sub="Journal" onPress={()=>router.push('/journal')}/>
