@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Easing, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Svg, { G, Path } from 'react-native-svg';
 import { PLACES, PROVINCES } from '@/data/catalog';
@@ -32,11 +32,15 @@ const areaSqKm=(p:Record<string,any>)=>Number.isFinite(Number(p.area_sqkm))?Numb
 const rings=(f:Feature):number[][][]=>f.geometry.type==='Polygon'?f.geometry.coordinates:f.geometry.coordinates.flat();
 
 export default function ThailandMap({onSelectProvince,mode='all',compact=false,showLegend=true}:Props){
+  const {width}=useWindowDimensions();
   const [data,setData]=useState<FC|null>(null);
   const [error,setError]=useState('');
   const [zoom,setZoom]=useState(1);
   const [hoveredId,setHoveredId]=useState<string|null>(null);
+  const tooltipAnim=useRef(new Animated.Value(0)).current;
+  const mapEnter=useRef(new Animated.Value(0)).current;
   const {visitedProvinceIds,wishlistProvinceIds}=useTravelStore();
+  const mapHeight=compact?(width<700?520:700):(width<700?500:620);
 
   useEffect(()=>{(async()=>{
     try{
@@ -54,6 +58,14 @@ export default function ThailandMap({onSelectProvince,mode='all',compact=false,s
       });
     }
   })()},[]);
+
+  useEffect(()=>{
+    if(data)Animated.timing(mapEnter,{toValue:1,duration:420,easing:Easing.out(Easing.cubic),useNativeDriver:true}).start();
+  },[data,mapEnter]);
+
+  useEffect(()=>{
+    Animated.timing(tooltipAnim,{toValue:hoveredId?1:0,duration:hoveredId?180:120,easing:Easing.out(Easing.quad),useNativeDriver:true}).start();
+  },[hoveredId,tooltipAnim]);
 
   const prepared=useMemo<PreparedProvince[]|null>(()=>{
     if(!data)return null;
@@ -98,10 +110,10 @@ export default function ThailandMap({onSelectProvince,mode='all',compact=false,s
       ? {active:'#E7B85A',hover:'#F1CC83',stroke:'#C99334',hint:'คลิกจังหวัดเพื่อเพิ่ม/นำออกจาก “อยากไป”'}
       : {active:COLORS.visited,hover:'#37C8B4',stroke:'#086E68',hint:'ชี้จังหวัดเพื่อดูข้อมูลย่อ · คลิกเพื่อเปิดข้อมูลเพิ่มเติม'};
 
-  if(!prepared&&!error)return <View style={[s.loading,compact&&s.loadingCompact]}><ActivityIndicator color={COLORS.primary}/><Text style={s.muted}>กำลังโหลดแผนที่ 77 จังหวัด…</Text></View>;
-  if(!prepared)return <View style={[s.loading,compact&&s.loadingCompact]}><Text style={s.error}>{error}</Text></View>;
+  if(!prepared&&!error)return <View style={[s.loading,{height:compact?(width<700?480:560):420}]}><ActivityIndicator color={COLORS.primary}/><Text style={s.muted}>กำลังโหลดแผนที่ 77 จังหวัด…</Text></View>;
+  if(!prepared)return <View style={[s.loading,{height:compact?(width<700?480:560):420}]}><Text style={s.error}>{error}</Text></View>;
 
-  return <View style={[s.wrap,compact&&s.wrapCompact]}>
+  return <Animated.View style={[s.wrap,compact&&s.wrapCompact,{height:mapHeight,opacity:mapEnter,transform:[{scale:mapEnter.interpolate({inputRange:[0,1],outputRange:[.992,1]})}]}]}>
     <Svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`}>
       <G origin={`${W/2},${H/2}`} scale={zoom}>
         {prepared.map(p=>{
@@ -134,7 +146,7 @@ export default function ThailandMap({onSelectProvince,mode='all',compact=false,s
     </Svg>
 
     {hoveredProvince&&Platform.OS==='web'&&(
-      <View pointerEvents="none" style={s.tooltip}>
+      <Animated.View pointerEvents="none" style={[s.tooltip,{opacity:tooltipAnim,transform:[{translateY:tooltipAnim.interpolate({inputRange:[0,1],outputRange:[5,0]})},{scale:tooltipAnim.interpolate({inputRange:[0,1],outputRange:[.985,1]})}]}]}>
         <View style={s.tooltipTop}>
           <View style={[s.tooltipDot,{backgroundColor:mode==='wishlist'?'#E7B85A':mode==='visited'?'#58A894':'#37C8B4'}]}/>
           <View style={{flex:1}}>
@@ -150,12 +162,10 @@ export default function ThailandMap({onSelectProvince,mode='all',compact=false,s
           {hoveredPrepared?.area?<Text style={s.tooltipMeta}>◫ {Math.round(hoveredPrepared.area).toLocaleString()} ตร.กม.</Text>:null}
         </View>
         <Text style={s.clickText}>{mode==='all'?'คลิกเพื่อเปิดข้อมูลจังหวัด':'คลิกเพื่อสลับสถานะจังหวัดนี้'}</Text>
-      </View>
+      </Animated.View>
     )}
 
-    <View style={s.hint} pointerEvents="none">
-      <Text style={s.hintText}>{Platform.OS==='web'?palette.hint:'แตะจังหวัดเพื่อสลับสถานะ'}</Text>
-    </View>
+    <View style={s.hint} pointerEvents="none"><Text style={s.hintText}>{Platform.OS==='web'?palette.hint:'แตะจังหวัดเพื่อสลับสถานะ'}</Text></View>
 
     {showLegend&&<View style={s.legend}>
       {mode==='visited'?<>
@@ -172,22 +182,29 @@ export default function ThailandMap({onSelectProvince,mode='all',compact=false,s
     </View>}
 
     <View style={s.zoom}>
-      <Pressable onPress={()=>setZoom(z=>Math.min(2,z+.15))}><Text style={s.zoomText}>＋</Text></Pressable>
+      <MotionMapButton onPress={()=>setZoom(z=>Math.min(2,z+.15))}><Text style={s.zoomText}>＋</Text></MotionMapButton>
       <View style={s.zoomDivider}/>
-      <Pressable onPress={()=>setZoom(z=>Math.max(.8,z-.15))}><Text style={s.zoomText}>−</Text></Pressable>
+      <MotionMapButton onPress={()=>setZoom(z=>Math.max(.8,z-.15))}><Text style={s.zoomText}>−</Text></MotionMapButton>
       <View style={s.zoomDivider}/>
-      <Pressable onPress={()=>setZoom(1)}><Text style={s.resetText}>◎</Text></Pressable>
+      <MotionMapButton onPress={()=>setZoom(1)}><Text style={s.resetText}>◎</Text></MotionMapButton>
     </View>
-  </View>
+  </Animated.View>
+}
+
+function MotionMapButton({children,onPress}:{children:React.ReactNode;onPress:()=>void}){
+  const scale=useRef(new Animated.Value(1)).current;
+  const down=()=>Animated.spring(scale,{toValue:.9,useNativeDriver:true,damping:18,stiffness:280,mass:.35}).start();
+  const up=()=>Animated.spring(scale,{toValue:1,useNativeDriver:true,damping:14,stiffness:240,mass:.4}).start();
+  return <Animated.View style={{transform:[{scale}]}}><Pressable onPress={onPress} onPressIn={down} onPressOut={up}>{children}</Pressable></Animated.View>;
 }
 
 const s=StyleSheet.create({
   wrap:{height:620,backgroundColor:'#E8F5F3',borderRadius:RADIUS.lg,overflow:'hidden',borderWidth:1,borderColor:COLORS.border,position:'relative'},
   wrapCompact:{height:700,borderRadius:22},
-  loading:{height:420,alignItems:'center',justifyContent:'center',gap:10},loadingCompact:{height:560},muted:{color:COLORS.textMuted},error:{color:COLORS.danger,textAlign:'center',padding:24},
+  loading:{height:420,alignItems:'center',justifyContent:'center',gap:10},muted:{color:COLORS.textMuted},error:{color:COLORS.danger,textAlign:'center',padding:24},
   tooltip:{position:'absolute',left:16,top:16,minWidth:250,maxWidth:310,backgroundColor:'rgba(255,255,255,.98)',borderRadius:18,padding:14,borderWidth:1,borderColor:'rgba(8,126,139,.18)',shadowColor:'#14333A',shadowOffset:{width:0,height:10},shadowOpacity:.16,shadowRadius:22,elevation:10},
   tooltipTop:{flexDirection:'row',alignItems:'center',gap:9},tooltipDot:{width:10,height:10,borderRadius:5},tooltipTitle:{fontSize:18,fontWeight:'900',color:COLORS.text},tooltipEn:{fontSize:11,color:COLORS.textMuted,marginTop:1},statusPill:{backgroundColor:'#E8F7F4',borderRadius:999,paddingHorizontal:9,paddingVertical:5},statusVisited:{backgroundColor:'#E4F2ED'},statusWish:{backgroundColor:'#FFF1D2'},statusPillText:{fontSize:10,fontWeight:'900',color:'#087E8B'},tooltipRegion:{fontSize:12,color:COLORS.primary,fontWeight:'900',marginTop:8},tooltipSummary:{fontSize:12,color:COLORS.text,lineHeight:18,marginTop:5,fontWeight:'700'},metaRow:{flexDirection:'row',flexWrap:'wrap',gap:8,marginTop:8},tooltipMeta:{fontSize:11,color:COLORS.textMuted},clickText:{fontSize:11,color:COLORS.primary,fontWeight:'900',marginTop:9},
-  hint:{position:'absolute',top:16,alignSelf:'center',backgroundColor:'rgba(255,255,255,.9)',borderRadius:999,paddingHorizontal:12,paddingVertical:7,borderWidth:1,borderColor:'rgba(103,157,148,.18)'},hintText:{fontSize:11,color:'#527870',fontWeight:'800'},
-  legend:{position:'absolute',left:14,bottom:14,flexDirection:'row',alignItems:'center',gap:7,backgroundColor:'rgba(255,255,255,.95)',paddingHorizontal:12,paddingVertical:9,borderRadius:16,shadowColor:'#17332D',shadowOffset:{width:0,height:4},shadowOpacity:.08,shadowRadius:12,elevation:4},legendText:{fontSize:12,color:COLORS.textMuted,fontWeight:'700'},dot:{width:10,height:10,borderRadius:4,marginLeft:5},
+  hint:{position:'absolute',top:16,alignSelf:'center',backgroundColor:'rgba(255,255,255,.9)',borderRadius:999,paddingHorizontal:12,paddingVertical:7,borderWidth:1,borderColor:'rgba(103,157,148,.18)',maxWidth:'76%'},hintText:{fontSize:11,color:'#527870',fontWeight:'800',textAlign:'center'},
+  legend:{position:'absolute',left:14,bottom:14,flexDirection:'row',alignItems:'center',gap:7,backgroundColor:'rgba(255,255,255,.95)',paddingHorizontal:12,paddingVertical:9,borderRadius:16,shadowColor:'#17332D',shadowOffset:{width:0,height:4},shadowOpacity:.08,shadowRadius:12,elevation:4,flexWrap:'wrap',maxWidth:'72%'},legendText:{fontSize:12,color:COLORS.textMuted,fontWeight:'700'},dot:{width:10,height:10,borderRadius:4,marginLeft:5},
   zoom:{position:'absolute',right:14,bottom:14,backgroundColor:'rgba(255,255,255,.96)',borderRadius:14,borderWidth:1,borderColor:COLORS.border,overflow:'hidden',shadowColor:'#17332D',shadowOffset:{width:0,height:4},shadowOpacity:.08,shadowRadius:10,elevation:3},zoomText:{fontSize:21,color:COLORS.text,paddingHorizontal:12,paddingVertical:5,textAlign:'center'},resetText:{fontSize:17,color:COLORS.text,paddingHorizontal:12,paddingVertical:8,textAlign:'center'},zoomDivider:{height:1,backgroundColor:COLORS.border},
 });
