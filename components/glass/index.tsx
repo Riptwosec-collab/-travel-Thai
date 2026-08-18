@@ -44,7 +44,7 @@ export function GlassPressable({children,onPress,style,accessibilityLabel}:{chil
     onMouseLeave:()=>Animated.spring(lift,{toValue:0,useNativeDriver:true,damping:17,stiffness:190}).start(),
   } as any):{};
   return <Animated.View {...hoverProps} style={[style,{transform:[{scale},{translateY:lift.interpolate({inputRange:[0,1],outputRange:[0,-4]})}]}]}>
-    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} style={styles.pressFill}>{children}</Pressable>
+    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} style={[styles.pressFill,style]}>{children}</Pressable>
   </Animated.View>;
 }
 
