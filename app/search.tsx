@@ -1,25 +1,9 @@
-import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import PlaceCard from '@/components/PlaceCard';
-import { CATEGORIES, PLACES, PROVINCES } from '@/data/catalog';
-import { COLORS, RADIUS, SPACING } from '@/constants/theme';
-import { Region } from '@/types';
+import React from 'react';
+import SearchCore from '@/components/SearchCore';
+import { GlassScreen } from '@/components/glass';
+import { PLACES, PROVINCES } from '@/data/catalog';
 
-const REGIONS:(Region|'ทั้งหมด')[]=['ทั้งหมด','ภาคเหนือ','ภาคอีสาน','ภาคกลาง','ภาคตะวันออก','ภาคตะวันตก','ภาคใต้'];
-export default function Search(){
- const router=useRouter();const [q,setQ]=useState('');const [category,setCategory]=useState('ทั้งหมด');const [region,setRegion]=useState<Region|'ทั้งหมด'>('ทั้งหมด');const [freeOnly,setFreeOnly]=useState(false);
- const places=useMemo(()=>PLACES.filter(p=>{const prov=PROVINCES.find(x=>x.id===p.provinceId);const text=`${p.name} ${p.province} ${p.tags.join(' ')}`.toLowerCase();return (!q||text.includes(q.toLowerCase()))&&(category==='ทั้งหมด'||p.category===category)&&(region==='ทั้งหมด'||prov?.region===region)&&(!freeOnly||p.ticketPrice.includes('ฟรี'));}),[q,category,region,freeOnly]);
- const provinces=useMemo(()=>PROVINCES.filter(p=>(!q||p.nameTh.includes(q)||p.nameEn.toLowerCase().includes(q.toLowerCase()))&&(region==='ทั้งหมด'||p.region===region)).slice(0,8),[q,region]);
- return <SafeAreaView style={s.safe}><View style={s.header}><Pressable onPress={()=>router.back()}><Ionicons name="chevron-back" size={26} color={COLORS.text}/></Pressable><View style={s.search}><Ionicons name="search" size={19} color={COLORS.textMuted}/><TextInput autoFocus value={q} onChangeText={setQ} placeholder="ทะเลใกล้กรุงเทพ, วัดเชียงใหม่, ที่เที่ยวฟรี..." style={s.input}/>{q&&<Pressable onPress={()=>setQ('')}><Ionicons name="close-circle" size={20} color={COLORS.textMuted}/></Pressable>}</View></View><ScrollView contentContainerStyle={s.content}>
-  <Text style={s.label}>ประเภท</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:8}}>{CATEGORIES.map(x=><Chip key={x} label={x} on={category===x} onPress={()=>setCategory(x)}/>)}</ScrollView>
-  <Text style={s.label}>ภูมิภาค</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:8}}>{REGIONS.map(x=><Chip key={x} label={x} on={region===x} onPress={()=>setRegion(x)}/>)}</ScrollView>
-  <Pressable style={[s.free,freeOnly&&s.freeOn]} onPress={()=>setFreeOnly(v=>!v)}><Ionicons name="pricetag" size={17} color={freeOnly?'#fff':COLORS.primary}/><Text style={[s.freeText,freeOnly&&{color:'#fff'}]}>เฉพาะที่เที่ยวฟรี</Text></Pressable>
-  <Text style={s.section}>จังหวัดที่เกี่ยวข้อง</Text><View style={s.provinces}>{provinces.map(p=><Pressable key={p.id} style={s.province} onPress={()=>router.replace({pathname:'/province-detail',params:{id:p.id}})}><Text style={s.pname}>{p.nameTh}</Text><Text style={s.pregion}>{p.region}</Text></Pressable>)}</View>
-  <View style={s.row}><Text style={s.section}>สถานที่ ({places.length})</Text><Text style={s.muted}>จัดตามความเกี่ยวข้อง</Text></View>{places.length?<View style={{gap:12}}>{places.map(p=><PlaceCard key={p.id} place={p} compact/>)}</View>:<View style={s.empty}><Ionicons name="search-outline" size={30} color={COLORS.primary}/><Text style={s.emptyTitle}>ยังไม่พบผลลัพธ์</Text><Text style={s.muted}>ลองลดตัวกรองหรือใช้คำค้นอื่น</Text></View>}
- </ScrollView></SafeAreaView>
+export default function SearchGlass(){
+  const background=PLACES.find(x=>x.category==='ทะเล')?.image||PLACES[0]?.image||PROVINCES[0].coverImage;
+  return <GlassScreen image={background}><SearchCore/></GlassScreen>;
 }
-function Chip({label,on,onPress}:{label:string;on:boolean;onPress:()=>void}){return <Pressable onPress={onPress} style={[s.chip,on&&s.chipOn]}><Text style={[s.chipText,on&&s.chipTextOn]}>{label}</Text></Pressable>}
-const s=StyleSheet.create({safe:{flex:1,backgroundColor:COLORS.background},header:{padding:SPACING.md,flexDirection:'row',alignItems:'center',gap:10,borderBottomWidth:1,borderBottomColor:COLORS.border,backgroundColor:COLORS.surface},search:{flex:1,height:48,flexDirection:'row',alignItems:'center',gap:8,borderRadius:RADIUS.md,backgroundColor:'#F4F7F8',paddingHorizontal:12},input:{flex:1,color:COLORS.text},content:{padding:SPACING.lg,paddingBottom:60,gap:12},label:{fontSize:13,fontWeight:'900',color:COLORS.text},chip:{paddingHorizontal:12,paddingVertical:8,borderRadius:999,backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border},chipOn:{backgroundColor:COLORS.dark,borderColor:COLORS.dark},chipText:{color:COLORS.textMuted,fontWeight:'700'},chipTextOn:{color:'#fff'},free:{alignSelf:'flex-start',flexDirection:'row',gap:7,alignItems:'center',paddingHorizontal:12,paddingVertical:8,borderRadius:999,backgroundColor:'#E6F5F6'},freeOn:{backgroundColor:COLORS.primary},freeText:{color:COLORS.primaryDark,fontWeight:'800'},section:{fontSize:18,fontWeight:'900',color:COLORS.text,marginTop:4},provinces:{flexDirection:'row',flexWrap:'wrap',gap:8},province:{backgroundColor:COLORS.surface,borderWidth:1,borderColor:COLORS.border,borderRadius:RADIUS.md,paddingHorizontal:12,paddingVertical:10,minWidth:'30%'},pname:{fontWeight:'900',color:COLORS.text},pregion:{fontSize:11,color:COLORS.textMuted,marginTop:2},row:{flexDirection:'row',justifyContent:'space-between',alignItems:'center'},muted:{color:COLORS.textMuted,fontSize:12},empty:{backgroundColor:COLORS.surface,borderRadius:RADIUS.md,padding:28,alignItems:'center',gap:7,borderWidth:1,borderColor:COLORS.border},emptyTitle:{fontWeight:'900',fontSize:17,color:COLORS.text}});
