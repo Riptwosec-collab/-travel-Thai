@@ -1,0 +1,3 @@
+THAILAND GLASS production release
+2026-08-18
+Preserve -> Refactor -> Upgrade -> Integrate
