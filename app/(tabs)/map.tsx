@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Alert, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,7 +8,7 @@ import ThailandMap from '@/components/ThailandMap';
 import { GlassCard, GlassChip, GlassCircleButton, GlassHeader, GlassPageEnter, GlassPressable, GlassProgress, GlassScreen, GlassSection } from '@/components/glass';
 import { PLACES, PROVINCES } from '@/data/catalog';
 import { getProvinceInfo } from '@/data/provinceInfo';
-import { GLASS, GLASS_RADIUS, glassSurface } from '@/constants/glassTheme';
+import { GLASS, glassSurface } from '@/constants/glassTheme';
 import { useTravelStore } from '@/store/useTravelStore';
 import { Region } from '@/types';
 
@@ -22,6 +22,9 @@ export default function MapScreen(){
  const [q,setQ]=useState('');
  const [selectedId,setSelectedId]=useState<string|null>(null);
  const [region,setRegion]=useState<Region|'ทั้งหมด'>('ทั้งหมด');
+ const [mapKey,setMapKey]=useState(0);
+ const [filterOpen,setFilterOpen]=useState(true);
+ const [showMapLegend,setShowMapLegend]=useState(true);
  const {visitedProvinceIds,wishlistProvinceIds,toggleVisitedProvince,toggleWishlistProvince}=useTravelStore();
  const progress=Math.round(visitedProvinceIds.length/77*100);
  const filtered=useMemo(()=>PROVINCES.filter(p=>(region==='ทั้งหมด'||p.region===region)&&(p.nameTh.includes(q)||p.nameEn.toLowerCase().includes(q.toLowerCase()))),[q,region]);
@@ -33,13 +36,26 @@ export default function MapScreen(){
  const background=selected?.coverImage||PLACES.find(x=>x.category==='ธรรมชาติ')?.image||PROVINCES[0].coverImage;
 
  const openFullDetail=()=>{if(!selectedId)return;const id=selectedId;setSelectedId(null);router.push({pathname:'/province-detail',params:{id}})};
+ const resetMap=()=>{setMapKey(x=>x+1);setQ('');setRegion('ทั้งหมด');setSelectedId(null)};
+ const locateMe=()=>{
+  const nav=(globalThis as any).navigator;
+  if(Platform.OS==='web'&&nav?.geolocation){
+   nav.geolocation.getCurrentPosition(
+    (pos:any)=>Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${pos.coords.latitude},${pos.coords.longitude}`),
+    ()=>Alert.alert('ไม่สามารถอ่านตำแหน่ง','กรุณาอนุญาต Location ให้เบราว์เซอร์ แล้วลองอีกครั้ง'),
+    {enableHighAccuracy:true,timeout:8000,maximumAge:60000},
+   );
+   return;
+  }
+  Alert.alert('ตำแหน่งปัจจุบัน','ฟังก์ชัน Location บนเว็บพร้อมใช้งาน เมื่อเปิดในเบราว์เซอร์และอนุญาตสิทธิ์ตำแหน่ง');
+ };
 
  return <GlassScreen image={background}>
   <SafeAreaView style={s.safe}>
    <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
     <View style={[s.page,desktop&&s.pageDesktop]}>
      <GlassPageEnter>
-      <GlassHeader eyebrow="THAILAND MAP · 77 PROVINCES" title="แผนที่ประเทศไทย" subtitle="แตะจังหวัดเพื่อดูสถานะ ไฮไลต์ และวางแผนการเดินทาง" right={<GlassCircleButton icon="layers-outline" label="เลเยอร์แผนที่" onPress={()=>{}}/>}/>
+      <GlassHeader eyebrow="THAILAND MAP · 77 PROVINCES" title="แผนที่ประเทศไทย" subtitle="แตะจังหวัดเพื่อดูสถานะ ไฮไลต์ และวางแผนการเดินทาง" right={<GlassCircleButton icon="layers-outline" active={showMapLegend} label="แสดงหรือซ่อนคำอธิบายแผนที่" onPress={()=>setShowMapLegend(v=>!v)}/>}/>
      </GlassPageEnter>
 
      <GlassPageEnter delay={70}>
@@ -51,18 +67,18 @@ export default function MapScreen(){
 
      <GlassPageEnter delay={120}>
       <GlassCard strong style={s.mapCard}>
-       <View style={s.mapHead}><View style={{flex:1,minWidth:180}}><Text style={s.mapTitle}>ประเทศไทย · 77 จังหวัด</Text><Text style={s.mapSub}>Visited / Wishlist / Not visited อัปเดตจาก Store จริง</Text></View><View style={s.legend}><Legend color={GLASS.turquoise} label="ไปแล้ว"/><Legend color={GLASS.goldStrong} label="กำลังจะไป"/><Legend color="rgba(255,255,255,.38)" label="ยังไม่ไป"/></View></View>
-       <View style={s.mapInner}><ThailandMap onSelectProvince={setSelectedId}/></View>
-       <View style={s.mapControls}><GlassCircleButton icon="locate-outline" size={40} label="ตำแหน่งปัจจุบัน" onPress={()=>{}}/><GlassCircleButton icon="refresh-outline" size={40} label="รีเซ็ตแผนที่" onPress={()=>{}}/><GlassCircleButton icon="options-outline" size={40} label="ตัวกรอง" onPress={()=>{}}/></View>
+       <View style={s.mapHead}><View style={{flex:1,minWidth:180}}><Text style={s.mapTitle}>ประเทศไทย · 77 จังหวัด</Text><Text style={s.mapSub}>Visited / Wishlist / Not visited อัปเดตจาก Store จริง</Text></View>{showMapLegend&&<View style={s.legend}><Legend color={GLASS.turquoise} label="ไปแล้ว"/><Legend color={GLASS.goldStrong} label="กำลังจะไป"/><Legend color="rgba(255,255,255,.38)" label="ยังไม่ไป"/></View>}</View>
+       <View style={s.mapInner}><ThailandMap key={mapKey} onSelectProvince={setSelectedId} showLegend={showMapLegend}/></View>
+       <View style={s.mapControls}><GlassCircleButton icon="locate-outline" size={40} label="เปิดตำแหน่งปัจจุบัน" onPress={locateMe}/><GlassCircleButton icon="refresh-outline" size={40} label="รีเซ็ตแผนที่" onPress={resetMap}/><GlassCircleButton icon="options-outline" size={40} active={filterOpen} label="แสดงหรือซ่อนตัวกรอง" onPress={()=>setFilterOpen(v=>!v)}/></View>
       </GlassCard>
      </GlassPageEnter>
 
-     <GlassPageEnter delay={170}>
+     {filterOpen&&<GlassPageEnter delay={170}>
       <GlassCard style={s.toolbar}>
        <View style={s.searchWrap}><Ionicons name="search" size={19} color={GLASS.white}/><TextInput value={q} onChangeText={setQ} placeholder="ค้นหาจังหวัด เช่น ศรีสะเกษ เชียงใหม่ กระบี่" placeholderTextColor="rgba(255,255,255,.70)" style={s.input}/>{!!q&&<Pressable onPress={()=>setQ('')} hitSlop={8}><Ionicons name="close-circle" size={18} color="rgba(255,255,255,.76)"/></Pressable>}</View>
        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.regionScroll}>{REGIONS.map(r=><GlassChip key={r} label={r} active={region===r} onPress={()=>setRegion(r)}/>)}</ScrollView>
       </GlassCard>
-     </GlassPageEnter>
+     </GlassPageEnter>}
 
      <GlassPageEnter delay={220}>
       <GlassSection title="จังหวัดทั้งหมด" subtitle={`พบ ${filtered.length} จังหวัด`} />
