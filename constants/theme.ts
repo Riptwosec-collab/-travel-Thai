@@ -5,7 +5,7 @@ export const COLORS = {
   wishlist: '#F0C774',
   visited: '#25D5B2',
   rating: '#FFD166',
-  background: '#DDF7FA',
+  background: 'rgba(7,91,108,0.18)',
   surface: 'rgba(255,255,255,0.20)',
   surfaceAlt: 'rgba(255,255,255,0.12)',
   text: '#073D4B',
