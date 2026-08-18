@@ -2,6 +2,7 @@ import 'react-native-reanimated';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
+// Keep the existing visual palette; this layer only coordinates navigation motion and gestures.
 export default function RootLayout(){
  return <>
   <StatusBar style="dark"/>
