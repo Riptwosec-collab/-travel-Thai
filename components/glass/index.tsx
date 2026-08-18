@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { GLASS, GLASS_RADIUS, glassSurface } from '@/constants/glassTheme';
+import { GLASS, GLASS_RADIUS, GLASS_TEXT, glassSurface } from '@/constants/glassTheme';
 
 export function GlassScreen({children,image}:{children:React.ReactNode;image:string}){
   const zoom=useRef(new Animated.Value(0)).current;
@@ -15,12 +15,14 @@ export function GlassScreen({children,image}:{children:React.ReactNode;image:str
     return()=>loop.stop();
   },[zoom]);
   return <View style={styles.screen}>
-    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill,{transform:[{scale:zoom.interpolate({inputRange:[0,1],outputRange:[1.03,1.09]})}]}]}>
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill,{transform:[{scale:zoom.interpolate({inputRange:[0,1],outputRange:[1.03,1.085]})}]}]}>
       <Image source={image} style={StyleSheet.absoluteFill} contentFit="cover" transition={350} cachePolicy="memory-disk"/>
     </Animated.View>
+    <View pointerEvents="none" style={styles.photoWash}/>
     <View pointerEvents="none" style={styles.topTint}/>
     <View pointerEvents="none" style={styles.midTint}/>
     <View pointerEvents="none" style={styles.bottomTint}/>
+    <View pointerEvents="none" style={styles.edgeVignette}/>
     <View pointerEvents="none" style={styles.bloomA}/>
     <View pointerEvents="none" style={styles.bloomB}/>
     {children}
@@ -30,6 +32,7 @@ export function GlassScreen({children,image}:{children:React.ReactNode;image:str
 export function GlassCard({children,style,strong=false}:{children:React.ReactNode;style?:ViewStyle|ViewStyle[]|any;strong?:boolean}){
   return <View style={[styles.card,glassSurface(strong),style]}>
     <View pointerEvents="none" style={styles.reflection}/>
+    <View pointerEvents="none" style={styles.cardShade}/>
     {children}
   </View>;
 }
@@ -57,7 +60,7 @@ export function GlassCircleButton({icon,onPress,size=44,active=false,label}:{ico
 export function GlassSearch({value,onChangeText,placeholder,onPress,showFilter=true,...props}:{value?:string;onChangeText?:(v:string)=>void;placeholder:string;onPress?:()=>void;showFilter?:boolean}&TextInputProps){
   const body=<>
     <Ionicons name="search" size={20} color={GLASS.white}/>
-    {onPress?<Text style={styles.searchPlaceholder}>{placeholder}</Text>:<TextInput {...props} value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor="rgba(255,255,255,.78)" style={styles.searchInput}/>} 
+    {onPress?<Text style={styles.searchPlaceholder}>{placeholder}</Text>:<TextInput {...props} value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor="rgba(255,255,255,.88)" style={styles.searchInput}/>} 
     {showFilter&&<View style={styles.searchTail}><Ionicons name="options-outline" size={19} color={GLASS.white}/></View>}
   </>;
   return onPress?<GlassPressable onPress={onPress} style={[styles.search,glassSurface(true)]}>{body}</GlassPressable>:<View style={[styles.search,glassSurface(true)]}>{body}</View>;
@@ -93,42 +96,50 @@ export function GlassHeader({eyebrow,title,subtitle,right}:{eyebrow?:string;titl
 }
 
 export const glassText = {
-  primary: {color:GLASS.white} as const,
-  secondary: {color:'rgba(255,255,255,.78)'} as const,
+  primary: {color:GLASS_TEXT.primary} as const,
+  secondary: {color:GLASS_TEXT.secondary} as const,
+  tertiary: {color:GLASS_TEXT.tertiary} as const,
   dark: {color:GLASS.ink} as const,
 };
 
+const readableShadow = Platform.OS==='web'
+  ? ({textShadow:'0 1px 10px rgba(0,24,33,.40)'} as any)
+  : ({textShadowColor:'rgba(0,24,33,.40)',textShadowOffset:{width:0,height:1},textShadowRadius:5} as any);
+
 const styles=StyleSheet.create({
   screen:{flex:1,backgroundColor:GLASS.tealDeep,overflow:'hidden'},
+  photoWash:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(0,82,104,.14)'},
   topTint:{...StyleSheet.absoluteFillObject,backgroundColor:GLASS.overlayTop},
   midTint:{position:'absolute',left:0,right:0,top:'28%',bottom:'24%',backgroundColor:GLASS.overlayMid},
-  bottomTint:{position:'absolute',left:0,right:0,bottom:0,height:'48%',backgroundColor:GLASS.overlayBottom},
-  bloomA:{position:'absolute',width:340,height:340,borderRadius:170,top:-110,right:-80,backgroundColor:'rgba(99,232,244,.13)'},
-  bloomB:{position:'absolute',width:280,height:280,borderRadius:140,bottom:40,left:-100,backgroundColor:'rgba(242,211,154,.10)'},
+  bottomTint:{position:'absolute',left:0,right:0,bottom:0,height:'52%',backgroundColor:GLASS.overlayBottom},
+  edgeVignette:{...StyleSheet.absoluteFillObject,backgroundColor:GLASS.overlayVignette},
+  bloomA:{position:'absolute',width:360,height:360,borderRadius:180,top:-120,right:-90,backgroundColor:'rgba(115,240,248,.12)'},
+  bloomB:{position:'absolute',width:300,height:300,borderRadius:150,bottom:30,left:-110,backgroundColor:'rgba(244,214,155,.09)'},
   card:{borderRadius:GLASS_RADIUS.lg,overflow:'hidden'},
-  reflection:{position:'absolute',left:18,right:18,top:0,height:1,backgroundColor:'rgba(255,255,255,.62)'},
+  reflection:{position:'absolute',left:18,right:18,top:0,height:1,backgroundColor:GLASS.highlight,zIndex:2},
+  cardShade:{position:'absolute',left:0,right:0,bottom:0,height:'44%',backgroundColor:'rgba(1,30,40,.10)'},
   pressFill:{width:'100%',height:'100%',flexDirection:'row',alignItems:'center',justifyContent:'center'},
   circle:{alignItems:'center',justifyContent:'center',overflow:'hidden'},
   search:{minHeight:58,borderRadius:GLASS_RADIUS.md,flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:16,overflow:'hidden'},
-  searchInput:{flex:1,color:GLASS.white,fontSize:14,paddingVertical:0},
-  searchPlaceholder:{flex:1,color:'rgba(255,255,255,.82)',fontSize:14},
-  searchTail:{width:34,height:34,borderRadius:17,backgroundColor:'rgba(255,255,255,.12)',alignItems:'center',justifyContent:'center'},
+  searchInput:{flex:1,color:GLASS.white,fontSize:14,fontWeight:'600',paddingVertical:0,...readableShadow},
+  searchPlaceholder:{flex:1,color:'rgba(255,255,255,.91)',fontSize:14,fontWeight:'600',...readableShadow},
+  searchTail:{width:34,height:34,borderRadius:17,backgroundColor:'rgba(255,255,255,.13)',borderWidth:1,borderColor:'rgba(255,255,255,.16)',alignItems:'center',justifyContent:'center'},
   chip:{minHeight:36,borderRadius:GLASS_RADIUS.pill,paddingHorizontal:13,alignItems:'center',justifyContent:'center',backgroundColor:GLASS.glassSoft,borderWidth:1,borderColor:GLASS.border},
-  chipActive:{backgroundColor:'rgba(99,232,244,.34)',borderColor:'rgba(255,255,255,.58)'},
-  chipText:{fontSize:11,fontWeight:'800',color:'rgba(255,255,255,.78)'},
+  chipActive:{backgroundColor:'rgba(53,223,235,.26)',borderColor:'rgba(255,255,255,.48)'},
+  chipText:{fontSize:11,fontWeight:'800',color:GLASS_TEXT.secondary,...readableShadow},
   chipTextActive:{color:GLASS.white},
   sectionHead:{flexDirection:'row',alignItems:'flex-end',justifyContent:'space-between',gap:12},
-  sectionTitle:{fontSize:21,fontWeight:'900',color:GLASS.white,letterSpacing:-.25},
-  sectionSub:{fontSize:11,color:'rgba(255,255,255,.70)',marginTop:3},
+  sectionTitle:{fontSize:21,fontWeight:'900',color:GLASS.white,letterSpacing:-.25,...readableShadow},
+  sectionSub:{fontSize:11,fontWeight:'600',color:GLASS_TEXT.secondary,marginTop:3,...readableShadow},
   stat:{flex:1,minWidth:130,minHeight:112,padding:14},
-  statIcon:{width:38,height:38,borderRadius:14,backgroundColor:'rgba(255,255,255,.14)',alignItems:'center',justifyContent:'center'},
-  statValue:{fontSize:22,fontWeight:'900',color:GLASS.white,marginTop:9},
-  statLabel:{fontSize:11,fontWeight:'800',color:'rgba(255,255,255,.76)',marginTop:2},
-  statSub:{fontSize:9,color:'rgba(255,255,255,.58)',marginTop:2},
-  progress:{width:'100%',borderRadius:999,backgroundColor:'rgba(255,255,255,.16)',overflow:'hidden'},
+  statIcon:{width:38,height:38,borderRadius:14,backgroundColor:'rgba(255,255,255,.13)',borderWidth:1,borderColor:'rgba(255,255,255,.14)',alignItems:'center',justifyContent:'center'},
+  statValue:{fontSize:22,fontWeight:'900',color:GLASS.white,marginTop:9,...readableShadow},
+  statLabel:{fontSize:11,fontWeight:'800',color:GLASS_TEXT.secondary,marginTop:2,...readableShadow},
+  statSub:{fontSize:9,fontWeight:'600',color:GLASS_TEXT.tertiary,marginTop:2,...readableShadow},
+  progress:{width:'100%',borderRadius:999,backgroundColor:'rgba(255,255,255,.17)',overflow:'hidden'},
   progressFill:{height:'100%',borderRadius:999,backgroundColor:GLASS.aqua},
   header:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:14},
-  eyebrow:{fontSize:10,fontWeight:'900',letterSpacing:1.4,color:GLASS.gold},
-  headerTitle:{fontSize:30,fontWeight:'900',color:GLASS.white,letterSpacing:-.45,marginTop:2},
-  headerSub:{fontSize:13,color:'rgba(255,255,255,.74)',lineHeight:19,marginTop:4},
+  eyebrow:{fontSize:10,fontWeight:'900',letterSpacing:1.4,color:GLASS.gold,...readableShadow},
+  headerTitle:{fontSize:30,fontWeight:'900',color:GLASS.white,letterSpacing:-.45,marginTop:2,...readableShadow},
+  headerSub:{fontSize:13,fontWeight:'600',color:GLASS_TEXT.secondary,lineHeight:19,marginTop:4,...readableShadow},
 });
