@@ -1,30 +1,30 @@
 export const COLORS = {
-  primary: '#0FA6B8',
-  primaryDark: '#087E8B',
-  secondary: '#3BA9E8',
-  wishlist: '#EF4F70',
-  visited: '#2FAE68',
-  rating: '#F4A928',
-  background: '#F3F7F8',
-  surface: '#FFFFFF',
-  surfaceAlt: '#EAF3F3',
-  text: '#142033',
-  textMuted: '#66768B',
-  border: '#DDE7EA',
-  dark: '#0A201B',
-  darkSurface: '#11332A',
-  gold: '#D7B064',
-  danger: '#D84C4C',
+  primary: '#21D5E4',
+  primaryDark: '#087E91',
+  secondary: '#61DDF2',
+  wishlist: '#F0C774',
+  visited: '#25D5B2',
+  rating: '#FFD166',
+  background: '#DDF7FA',
+  surface: 'rgba(255,255,255,0.20)',
+  surfaceAlt: 'rgba(255,255,255,0.12)',
+  text: '#073D4B',
+  textMuted: '#3F6F79',
+  border: 'rgba(255,255,255,0.34)',
+  dark: '#075A6E',
+  darkSurface: '#0B7A8E',
+  gold: '#F2D39A',
+  danger: '#E05C66',
 };
 
 export const CATEGORY_COLORS: Record<string, string> = {
-  ทะเล: '#3BA9E8', ธรรมชาติ: '#35B76F', ภูเขา: '#8B5CF6',
-  วัด: '#FFB020', คาเฟ่: '#F97316', อาหาร: '#EF4444', ที่พัก: '#06B6D4',
+  ทะเล: '#58DBEF', ธรรมชาติ: '#35D1A7', ภูเขา: '#78B8FF',
+  วัด: '#F2C66D', คาเฟ่: '#F4A66D', อาหาร: '#EF7C72', ที่พัก: '#4FD3E8',
 };
 
 export const SPACING = { xs: 6, sm: 10, md: 16, lg: 24, xl: 32 };
-export const RADIUS = { sm: 12, md: 18, lg: 24, pill: 999 };
+export const RADIUS = { sm: 14, md: 20, lg: 28, pill: 999 };
 export const SHADOW = {
-  shadowColor: '#0B1B24', shadowOffset: { width: 0, height: 8 },
-  shadowOpacity: 0.10, shadowRadius: 18, elevation: 5,
+  shadowColor: '#03566B', shadowOffset: { width: 0, height: 12 },
+  shadowOpacity: 0.16, shadowRadius: 28, elevation: 7,
 };
