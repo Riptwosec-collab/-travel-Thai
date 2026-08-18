@@ -3,7 +3,7 @@ import { Animated, Modal, Platform, Pressable, StyleSheet, Text, View } from 're
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GLASS, GLASS_RADIUS, glassSurface } from '@/constants/glassTheme';
+import { GLASS, GLASS_RADIUS, GLASS_TEXT, glassSurface } from '@/constants/glassTheme';
 
 export default function GlassBottomTabBar({state,navigation}:{state:any;navigation:any}){
  const router=useRouter();
@@ -16,7 +16,7 @@ export default function GlassBottomTabBar({state,navigation}:{state:any;navigati
    <View style={[s.bar,glassSurface(true)]}>
     <Nav icon="home" outline="home-outline" label="หน้าแรก" active={active==='index'} onPress={()=>navigation.navigate('index')}/>
     <Nav icon="map" outline="map-outline" label="แผนที่" active={active==='map'} onPress={()=>navigation.navigate('map')}/>
-    <View style={s.addSlot}><SpringButton onPress={()=>setOpen(true)}><View style={[s.add,glassSurface(true)]}><Ionicons name="add" size={31} color={GLASS.white}/></View></SpringButton></View>
+    <View style={s.addSlot}><SpringButton onPress={()=>setOpen(true)}><View style={s.add}><View style={s.addGlow}/><Ionicons name="add" size={31} color={GLASS.white}/></View></SpringButton></View>
     <Nav icon="briefcase" outline="briefcase-outline" label="ทริป" active={active==='trips'} onPress={()=>navigation.navigate('trips')}/>
     <Nav icon="person" outline="person-outline" label="ฉัน" active={false} onPress={()=>router.push('/account')}/>
    </View>
@@ -40,11 +40,11 @@ export default function GlassBottomTabBar({state,navigation}:{state:any;navigati
 }
 
 function Nav({icon,outline,label,active,onPress}:{icon:any;outline:any;label:string;active:boolean;onPress:()=>void}){
- return <SpringButton onPress={onPress} style={s.nav}><View style={s.navContent}><View style={[s.navIcon,active&&s.navIconActive]}><Ionicons name={active?icon:outline} size={21} color={active?GLASS.aqua:'rgba(255,255,255,.78)'}/></View><Text style={[s.label,active&&s.labelActive]}>{label}</Text></View></SpringButton>
+ return <SpringButton onPress={onPress} style={s.nav}><View style={s.navContent}><View style={[s.navIcon,active&&s.navIconActive]}><Ionicons name={active?icon:outline} size={21} color={active?GLASS.aqua:GLASS_TEXT.secondary}/></View><Text style={[s.label,active&&s.labelActive]}>{label}</Text></View></SpringButton>
 }
 
 function Quick({icon,title,sub,onPress}:{icon:any;title:string;sub:string;onPress:()=>void}){
- return <SpringButton style={s.quick} onPress={onPress}><View style={s.quickIcon}><Ionicons name={icon} size={21} color={GLASS.white}/></View><View style={{flex:1}}><Text style={s.quickTitle}>{title}</Text><Text style={s.quickSub}>{sub}</Text></View><Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,.62)"/></SpringButton>
+ return <SpringButton style={s.quick} onPress={onPress}><View style={s.quickIcon}><Ionicons name={icon} size={21} color={GLASS.white}/></View><View style={{flex:1}}><Text style={s.quickTitle}>{title}</Text><Text style={s.quickSub}>{sub}</Text></View><Ionicons name="chevron-forward" size={16} color={GLASS_TEXT.tertiary}/></SpringButton>
 }
 
 function SpringButton({children,onPress,style}:{children:React.ReactNode;onPress:()=>void;style?:any}){
@@ -53,8 +53,8 @@ function SpringButton({children,onPress,style}:{children:React.ReactNode;onPress
 }
 
 const s=StyleSheet.create({
- wrap:{position:'absolute',left:12,right:12,alignItems:'center'},bar:{width:'100%',maxWidth:690,height:70,borderRadius:28,flexDirection:'row',alignItems:'center',paddingHorizontal:6,overflow:'visible'},
- nav:{flex:1,height:62},pressFill:{width:'100%',height:'100%',alignItems:'center',justifyContent:'center',flexDirection:'row'},navContent:{alignItems:'center',justifyContent:'center',gap:1},navIcon:{height:31,minWidth:34,borderRadius:14,alignItems:'center',justifyContent:'center'},navIconActive:{backgroundColor:'rgba(99,232,244,.12)'},label:{fontSize:8,fontWeight:'800',color:'rgba(255,255,255,.64)',marginTop:1},labelActive:{color:GLASS.white},
- addSlot:{width:74,height:70,alignItems:'center',justifyContent:'center'},add:{width:58,height:58,borderRadius:29,backgroundColor:'rgba(33,213,228,.72)',borderWidth:1,borderColor:'rgba(255,255,255,.58)',alignItems:'center',justifyContent:'center',shadowColor:GLASS.aqua,shadowOpacity:.32,shadowRadius:18,elevation:10},
- modalRoot:{flex:1,justifyContent:'flex-end',alignItems:'center',padding:14},backdrop:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(2,29,38,.48)'},sheet:{width:'100%',maxWidth:620,borderRadius:GLASS_RADIUS.xl,padding:18,paddingBottom:24,overflow:'hidden',...(Platform.OS==='web'?({backdropFilter:'blur(34px)',WebkitBackdropFilter:'blur(34px)'} as any):{})},handle:{alignSelf:'center',width:44,height:4,borderRadius:2,backgroundColor:'rgba(255,255,255,.48)',marginBottom:14},sheetTitle:{fontSize:22,fontWeight:'900',color:GLASS.white},sheetSub:{fontSize:11,color:'rgba(255,255,255,.68)',marginTop:3},quickGrid:{gap:9,marginTop:15},quick:{height:64,borderRadius:18,backgroundColor:'rgba(255,255,255,.10)',borderWidth:1,borderColor:'rgba(255,255,255,.20)',paddingHorizontal:10},quickIcon:{width:40,height:40,borderRadius:14,backgroundColor:'rgba(255,255,255,.13)',alignItems:'center',justifyContent:'center',marginRight:10},quickTitle:{fontSize:13,fontWeight:'900',color:GLASS.white},quickSub:{fontSize:9,color:'rgba(255,255,255,.60)',marginTop:2},
+ wrap:{position:'absolute',left:12,right:12,alignItems:'center'},bar:{width:'100%',maxWidth:690,height:72,borderRadius:30,flexDirection:'row',alignItems:'center',paddingHorizontal:6,overflow:'visible'},
+ nav:{flex:1,height:64},pressFill:{width:'100%',height:'100%',alignItems:'center',justifyContent:'center',flexDirection:'row'},navContent:{alignItems:'center',justifyContent:'center',gap:2},navIcon:{height:32,minWidth:36,borderRadius:15,alignItems:'center',justifyContent:'center'},navIconActive:{backgroundColor:'rgba(115,240,248,.15)',borderWidth:1,borderColor:'rgba(115,240,248,.18)'},label:{fontSize:9,fontWeight:'800',color:GLASS_TEXT.secondary,marginTop:1},labelActive:{color:GLASS.white},
+ addSlot:{width:76,height:72,alignItems:'center',justifyContent:'center'},add:{width:60,height:60,borderRadius:30,backgroundColor:'rgba(53,223,235,.86)',borderWidth:1,borderColor:'rgba(255,255,255,.58)',alignItems:'center',justifyContent:'center',shadowColor:GLASS.aqua,shadowOpacity:.38,shadowRadius:22,elevation:12,overflow:'hidden'},addGlow:{position:'absolute',width:54,height:24,borderRadius:20,top:4,backgroundColor:'rgba(255,255,255,.18)'},
+ modalRoot:{flex:1,justifyContent:'flex-end',alignItems:'center',padding:14},backdrop:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(1,25,34,.62)'},sheet:{width:'100%',maxWidth:620,borderRadius:GLASS_RADIUS.xl,padding:18,paddingBottom:24,overflow:'hidden',...(Platform.OS==='web'?({backdropFilter:'blur(34px)',WebkitBackdropFilter:'blur(34px)'} as any):{})},handle:{alignSelf:'center',width:44,height:4,borderRadius:2,backgroundColor:'rgba(255,255,255,.54)',marginBottom:14},sheetTitle:{fontSize:22,fontWeight:'900',color:GLASS.white},sheetSub:{fontSize:11,fontWeight:'600',color:GLASS_TEXT.secondary,marginTop:3},quickGrid:{gap:9,marginTop:15},quick:{height:66,borderRadius:18,backgroundColor:'rgba(255,255,255,.08)',borderWidth:1,borderColor:'rgba(255,255,255,.16)',paddingHorizontal:10},quickIcon:{width:40,height:40,borderRadius:14,backgroundColor:'rgba(115,240,248,.11)',alignItems:'center',justifyContent:'center',marginRight:10},quickTitle:{fontSize:13,fontWeight:'900',color:GLASS.white},quickSub:{fontSize:9,fontWeight:'600',color:GLASS_TEXT.tertiary,marginTop:2},
 });
