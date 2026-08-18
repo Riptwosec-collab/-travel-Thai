@@ -40,7 +40,7 @@ export default function GlassBottomTabBar({state,navigation}:{state:any;navigati
 }
 
 function Nav({icon,outline,label,active,onPress}:{icon:any;outline:any;label:string;active:boolean;onPress:()=>void}){
- return <SpringButton onPress={onPress} style={s.nav}><View style={[s.navIcon,active&&s.navIconActive]}><Ionicons name={active?icon:outline} size={21} color={active?GLASS.aqua:'rgba(255,255,255,.78)'}/></View><Text style={[s.label,active&&s.labelActive]}>{label}</Text></SpringButton>
+ return <SpringButton onPress={onPress} style={s.nav}><View style={s.navContent}><View style={[s.navIcon,active&&s.navIconActive]}><Ionicons name={active?icon:outline} size={21} color={active?GLASS.aqua:'rgba(255,255,255,.78)'}/></View><Text style={[s.label,active&&s.labelActive]}>{label}</Text></View></SpringButton>
 }
 
 function Quick({icon,title,sub,onPress}:{icon:any;title:string;sub:string;onPress:()=>void}){
@@ -53,8 +53,8 @@ function SpringButton({children,onPress,style}:{children:React.ReactNode;onPress
 }
 
 const s=StyleSheet.create({
- wrap:{position:'absolute',left:12,right:12,alignItems:'center',pointerEvents:'box-none'},bar:{width:'100%',maxWidth:690,height:70,borderRadius:28,flexDirection:'row',alignItems:'center',paddingHorizontal:6,overflow:'visible'},
- nav:{flex:1,height:62},pressFill:{width:'100%',height:'100%',alignItems:'center',justifyContent:'center',flexDirection:'row'},navIcon:{height:31,minWidth:34,borderRadius:14,alignItems:'center',justifyContent:'center'},navIconActive:{backgroundColor:'rgba(99,232,244,.12)'},label:{fontSize:8,fontWeight:'800',color:'rgba(255,255,255,.64)',marginTop:1},labelActive:{color:GLASS.white},
+ wrap:{position:'absolute',left:12,right:12,alignItems:'center'},bar:{width:'100%',maxWidth:690,height:70,borderRadius:28,flexDirection:'row',alignItems:'center',paddingHorizontal:6,overflow:'visible'},
+ nav:{flex:1,height:62},pressFill:{width:'100%',height:'100%',alignItems:'center',justifyContent:'center',flexDirection:'row'},navContent:{alignItems:'center',justifyContent:'center',gap:1},navIcon:{height:31,minWidth:34,borderRadius:14,alignItems:'center',justifyContent:'center'},navIconActive:{backgroundColor:'rgba(99,232,244,.12)'},label:{fontSize:8,fontWeight:'800',color:'rgba(255,255,255,.64)',marginTop:1},labelActive:{color:GLASS.white},
  addSlot:{width:74,height:70,alignItems:'center',justifyContent:'center'},add:{width:58,height:58,borderRadius:29,backgroundColor:'rgba(33,213,228,.72)',borderWidth:1,borderColor:'rgba(255,255,255,.58)',alignItems:'center',justifyContent:'center',shadowColor:GLASS.aqua,shadowOpacity:.32,shadowRadius:18,elevation:10},
  modalRoot:{flex:1,justifyContent:'flex-end',alignItems:'center',padding:14},backdrop:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(2,29,38,.48)'},sheet:{width:'100%',maxWidth:620,borderRadius:GLASS_RADIUS.xl,padding:18,paddingBottom:24,overflow:'hidden',...(Platform.OS==='web'?({backdropFilter:'blur(34px)',WebkitBackdropFilter:'blur(34px)'} as any):{})},handle:{alignSelf:'center',width:44,height:4,borderRadius:2,backgroundColor:'rgba(255,255,255,.48)',marginBottom:14},sheetTitle:{fontSize:22,fontWeight:'900',color:GLASS.white},sheetSub:{fontSize:11,color:'rgba(255,255,255,.68)',marginTop:3},quickGrid:{gap:9,marginTop:15},quick:{height:64,borderRadius:18,backgroundColor:'rgba(255,255,255,.10)',borderWidth:1,borderColor:'rgba(255,255,255,.20)',paddingHorizontal:10},quickIcon:{width:40,height:40,borderRadius:14,backgroundColor:'rgba(255,255,255,.13)',alignItems:'center',justifyContent:'center',marginRight:10},quickTitle:{fontSize:13,fontWeight:'900',color:GLASS.white},quickSub:{fontSize:9,color:'rgba(255,255,255,.60)',marginTop:2},
 });
