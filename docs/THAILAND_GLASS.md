@@ -1,5 +1,7 @@
 # THAILAND GLASS — Implementation Guide
 
+**Release candidate:** UI/UX integration complete and ready for preview verification.
+
 This document describes the visual system applied to the existing **เที่ยวไทย / Travel Thai** application.
 
 ## Principle
