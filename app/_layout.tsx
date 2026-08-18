@@ -2,11 +2,16 @@ import 'react-native-reanimated';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-// Keep the existing visual palette; this layer only coordinates navigation motion and gestures.
 export default function RootLayout(){
  return <>
-  <StatusBar style="dark"/>
-  <Stack screenOptions={{headerShown:false,animation:'fade',gestureEnabled:true,fullScreenGestureEnabled:true}}>
+  <StatusBar style="light" translucent/>
+  <Stack screenOptions={{
+   headerShown:false,
+   animation:'fade',
+   gestureEnabled:true,
+   fullScreenGestureEnabled:true,
+   contentStyle:{backgroundColor:'#075A6E'},
+  }}>
    <Stack.Screen name="(tabs)" options={{animation:'fade'}}/>
    <Stack.Screen name="place-detail" options={{presentation:'modal',animation:'slide_from_bottom',gestureEnabled:true}}/>
    <Stack.Screen name="province-detail" options={{animation:'slide_from_right',gestureEnabled:true}}/>
