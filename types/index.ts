@@ -63,6 +63,10 @@ export interface Trip {
   tripStyle?: string;
   budgetBreakdown?: TripBudgetBreakdown;
   status?: 'วางแผน' | 'พร้อมเดินทาง' | 'จบทริป';
+  origin?: string;
+  destinationSummary?: string;
+  autoFilled?: boolean;
+  autoFillSource?: string;
 }
 
 export interface JournalEntry {
