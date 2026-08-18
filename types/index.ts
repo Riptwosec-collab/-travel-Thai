@@ -32,10 +32,37 @@ export interface Place {
   tags: string[];
 }
 
-export interface TripDay { day: number; placeIds: string[]; note?: string; }
+export interface TripDay {
+  day: number;
+  placeIds: string[];
+  note?: string;
+  title?: string;
+  date?: string;
+}
+
+export interface TripBudgetBreakdown {
+  transport?: number;
+  accommodation?: number;
+  food?: number;
+  activities?: number;
+  other?: number;
+}
+
 export interface Trip {
-  id: string; title: string; startDate: string; endDate: string;
-  budget: number; provinceIds: string[]; days: TripDay[]; note?: string;
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  budget: number;
+  provinceIds: string[];
+  days: TripDay[];
+  note?: string;
+  travelers?: number;
+  transport?: string;
+  accommodation?: string;
+  tripStyle?: string;
+  budgetBreakdown?: TripBudgetBreakdown;
+  status?: 'วางแผน' | 'พร้อมเดินทาง' | 'จบทริป';
 }
 
 export interface JournalEntry {
