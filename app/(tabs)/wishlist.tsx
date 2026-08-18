@@ -1,21 +1,13 @@
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import PlaceCard from '@/components/PlaceCard';
-import { PLACES, PROVINCES } from '@/data/catalog';
-import { COLORS, RADIUS, SPACING } from '@/constants/theme';
-import { useTravelStore } from '@/store/useTravelStore';
+import StatusMapDashboard from '@/components/StatusMapDashboard';
+import { COLORS } from '@/constants/theme';
 
 export default function Wishlist(){
- const router=useRouter();const [tab,setTab]=useState<'places'|'provinces'>('places');const {wishlistPlaceIds,wishlistProvinceIds}=useTravelStore();const places=PLACES.filter(p=>wishlistPlaceIds.includes(p.id));const provinces=PROVINCES.filter(p=>wishlistProvinceIds.includes(p.id));
- return <SafeAreaView style={s.safe}><ScrollView contentContainerStyle={s.content}>
-  <Text style={s.title}>อยากไป</Text><Text style={s.sub}>เก็บจังหวัดและสถานที่ที่อยากไป แล้วค่อยเปลี่ยนเป็นทริปเมื่อพร้อม</Text>
-  <View style={s.tabs}><Pressable style={[s.tab,tab==='places'&&s.tabOn]} onPress={()=>setTab('places')}><Text style={[s.tabText,tab==='places'&&s.tabTextOn]}>สถานที่ {places.length}</Text></Pressable><Pressable style={[s.tab,tab==='provinces'&&s.tabOn]} onPress={()=>setTab('provinces')}><Text style={[s.tabText,tab==='provinces'&&s.tabTextOn]}>จังหวัด {provinces.length}</Text></Pressable></View>
-  {tab==='places'?(places.length?<View style={s.list}>{places.map(p=><PlaceCard key={p.id} place={p} compact/>)}</View>:<Empty onPress={()=>router.push('/search')}/>):(provinces.length?<View style={s.provinces}>{provinces.map(p=><Pressable key={p.id} style={s.province} onPress={()=>router.push({pathname:'/province-detail',params:{id:p.id}})}><View style={s.heart}><Ionicons name="heart" color={COLORS.wishlist} size={18}/></View><View style={{flex:1}}><Text style={s.pname}>{p.nameTh}</Text><Text style={s.pregion}>{p.region} · ช่วงแนะนำ {p.bestMonths.slice(0,3).join(' ')}</Text></View><Ionicons name="chevron-forward" size={19} color={COLORS.textMuted}/></Pressable>)}</View>:<Empty onPress={()=>router.push('/(tabs)/map')}/>)}
-  {(places.length+provinces.length)>0&&<Pressable style={s.plan} onPress={()=>router.push('/(tabs)/trips')}><Ionicons name="calendar" size={20} color="#fff"/><Text style={s.planText}>นำรายการนี้ไปวางแผนทริป</Text></Pressable>}
- </ScrollView></SafeAreaView>
+  return <SafeAreaView style={s.safe} edges={['top']}>
+    <StatusMapDashboard mode="wishlist"/>
+  </SafeAreaView>;
 }
-function Empty({onPress}:{onPress:()=>void}){return <View style={s.empty}><View style={s.emptyIcon}><Ionicons name="heart-outline" size={30} color={COLORS.wishlist}/></View><Text style={s.emptyTitle}>ยังไม่มีรายการ</Text><Text style={s.emptyText}>กดรูปหัวใจในจังหวัดหรือสถานที่ที่สนใจ แล้วกลับมาจัดทริปที่นี่ได้เลย</Text><Pressable style={s.find} onPress={onPress}><Text style={s.findText}>ค้นหาที่เที่ยว</Text></Pressable></View>}
-const s=StyleSheet.create({safe:{flex:1,backgroundColor:COLORS.background},content:{padding:SPACING.lg,paddingBottom:120,gap:14},title:{fontSize:28,fontWeight:'900',color:COLORS.text},sub:{color:COLORS.textMuted,lineHeight:21},tabs:{flexDirection:'row',backgroundColor:'#E8EEF0',padding:4,borderRadius:999},tab:{flex:1,paddingVertical:10,alignItems:'center',borderRadius:999},tabOn:{backgroundColor:COLORS.surface},tabText:{color:COLORS.textMuted,fontWeight:'800'},tabTextOn:{color:COLORS.text},list:{gap:12},provinces:{gap:9},province:{backgroundColor:COLORS.surface,borderRadius:RADIUS.md,padding:14,borderWidth:1,borderColor:COLORS.border,flexDirection:'row',alignItems:'center',gap:12},heart:{width:40,height:40,borderRadius:13,backgroundColor:'#FFF0F4',alignItems:'center',justifyContent:'center'},pname:{fontWeight:'900',fontSize:16,color:COLORS.text},pregion:{fontSize:12,color:COLORS.textMuted,marginTop:2},empty:{backgroundColor:COLORS.surface,borderRadius:RADIUS.lg,padding:28,alignItems:'center',borderWidth:1,borderColor:COLORS.border},emptyIcon:{width:64,height:64,borderRadius:32,backgroundColor:'#FFF0F4',alignItems:'center',justifyContent:'center'},emptyTitle:{fontSize:19,fontWeight:'900',color:COLORS.text,marginTop:12},emptyText:{color:COLORS.textMuted,textAlign:'center',lineHeight:20,marginTop:5},find:{marginTop:14,backgroundColor:COLORS.primary,borderRadius:999,paddingHorizontal:16,paddingVertical:10},findText:{color:'#fff',fontWeight:'800'},plan:{height:52,borderRadius:RADIUS.md,backgroundColor:COLORS.dark,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:8},planText:{color:'#fff',fontWeight:'900'}});
+
+const s=StyleSheet.create({safe:{flex:1,backgroundColor:COLORS.background}});
