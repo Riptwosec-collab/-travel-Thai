@@ -55,11 +55,11 @@ const amount=(value:string)=>Number(value.replace(/,/g,''))||0;
 
 export const parseMoneyRange=(value:string):TripMoneyRange|undefined=>{
   const normalized=value.replace(/,/g,'').replace(/\s+/g,' ');
-  const hasMoneyHint=/(?:บาท|฿|THB|งบ|ค่าใช้จ่าย|ค่าเดินทาง|ค่าที่พัก|ค่าอาหาร|ประมาณ)/i.test(value);
-  const range=normalized.match(/(\d{2,})\s*(?:–|—|-|ถึง|to)\s*(\d{2,})(?:\s*(?:บาท|฿|THB))?/i);
+  const hasMoneyHint=/(?:บาท|฿|THB|งบ|ค่าใช้จ่าย|ค่าเดินทาง|ค่าที่พัก|ค่าอาหาร|ค่าเข้า|ค่าเรือ|ค่ารถ|ค่าเที่ยว|กิจกรรม|อาหาร|น้ำมัน|ของฝาก|กาแฟ|สระ|ห้อง|คืน|คัน)/i.test(value);
+  const range=normalized.match(/(\d{1,})\s*(?:–|—|-|ถึง|to)\s*(\d{1,})\s*\+?(?:\s*(?:บาท|฿|THB))?/i);
   if(range&&hasMoneyHint)return {min:amount(range[1]),max:amount(range[2])};
-  const single=normalized.match(/(?:ประมาณ\s*)?(\d{2,})(?:\s*(?:บาท|฿|THB))/i)
-    || (hasMoneyHint?normalized.match(/(?:งบ|ประมาณ|ค่าใช้จ่าย)\D{0,12}(\d{2,})/i):null);
+  const single=normalized.match(/(?:ประมาณ\s*)?(\d{1,})\s*(?:บาท|฿|THB)/i)
+    || (hasMoneyHint?normalized.match(/(?:งบ|ประมาณ|ค่าใช้จ่าย|ค่าเข้า|ค่าเรือ|ค่ารถ|ค่าอาหาร|น้ำมัน)\D{0,16}(\d{1,})/i):null);
   if(single){const n=amount(single[1]);return {min:n,max:n};}
   return undefined;
 };
@@ -97,7 +97,11 @@ const extractTime=(raw:string):TimeParts|null=>{
   return {time:end?`${start}–${end}`:start,rest:m[3]?.trim()||''};
 };
 
+const isGlobalSectionHeading=(line:string)=>/^(?:สรุปสถานที่เที่ยว|สถานที่เที่ยวทั้งหมด|สรุปที่พัก|ที่พักรายคืน|งบรวม|งบประมาณรวม|สรุปงบ|ค่าใช้จ่ายรวม|ของที่ควรเตรียม|Checklist|เช็กลิสต์|หมายเหตุสำคัญ|ข้อควรระวังสำคัญ)\s*[:：]?$/i.test(stripBullet(line));
+
 const isSectionHeading=(line:string)=>/^(?:กิจกรรม|รายละเอียด|หมายเหตุ|แนะนำ|ข้อควรระวัง|งบ(?:ประมาณ)?(?:วันที่|วัน|DAY)?|ค่าใช้จ่าย|ที่พัก|สรุป|ของที่ควรเตรียม|Checklist)\s*[:：]?$/i.test(stripBullet(line));
+
+const isTipOrWarning=(line:string)=>/(?:^แนะนำ|^ควร|^ต้อง|^เตรียม|^ตรวจสอบ|^เช็ก|ข้อควรระวัง|ควรระวัง|หน้าฝน|ค่อนข้างชัน|ทางลูกรัง|รองเท้า.*เกาะพื้น|น้ำอย่างน้อย)/i.test(line);
 
 const parseScheduleBlock=(time:string,rawLines:string[],day:number,index:number):TripScheduleItem=>{
   const content=rawLines.map(stripBullet).filter(Boolean);
@@ -121,7 +125,7 @@ const parseScheduleBlock=(time:string,rawLines:string[],day:number,index:number)
       continue;
     }
     if(mode==='activities')activities.push(line);
-    else if(mode==='notes')notes.push(line);
+    else if(mode==='notes'||isTipOrWarning(line))notes.push(line);
     else if(!isSectionHeading(line))detail.push(line);
   }
 
@@ -131,41 +135,47 @@ const parseScheduleBlock=(time:string,rawLines:string[],day:number,index:number)
     title,
     detail:detail.length?detail.join('\n'):undefined,
     activities:activities.length?activities:undefined,
-    notes:notes.length?notes:undefined,
+    notes:notes.length?Array.from(new Set(notes)):undefined,
   };
 };
 
 const parseBudgetItems=(sourceLines:string[]):{range?:TripMoneyRange;items:TripDayBudgetItem[];notes:string[]}=>{
   const items:TripDayBudgetItem[]=[];
   const notes:string[]=[];
-  let range:TripMoneyRange|undefined;
+  let explicitRange:TripMoneyRange|undefined;
   sourceLines.forEach(raw=>{
     const line=stripBullet(raw);
     if(!line)return;
     const r=parseMoneyRange(line);
-    if(/^(?:รวม|รวมประมาณ|งบรวม)/i.test(line)&&r){range=r;return;}
+    if(/^(?:รวม|รวมประมาณ|งบรวม|ยอดรวม)/i.test(line)&&r){explicitRange=r;return;}
     if(r){
       const label=line.split(/\d/)[0].replace(/[:：=-]/g,'').trim()||'ค่าใช้จ่าย';
       items.push({label,min:r.min,max:r.max,text:line});
-      if(!range)range=r;
     }else if(!/^(?:งบ|ค่าใช้จ่าย)\s*[:：]?$/i.test(line))notes.push(line);
   });
+  const sumMin=items.reduce((sum,x)=>sum+(x.min||x.max||0),0);
+  const sumMax=items.reduce((sum,x)=>sum+(x.max||x.min||0),0);
+  const range=explicitRange||(sumMin||sumMax?{min:sumMin||undefined,max:sumMax||undefined}:undefined);
   return {range,items,notes};
 };
 
-const findAccommodation=(sourceLines:string[])=>{
-  const line=sourceLines.map(stripBullet).find(x=>/^(?:พัก(?:ที่)?|ที่พัก(?:คืนนี้)?|โรงแรม)\b/i.test(x));
-  if(!line)return undefined;
-  return line
-    .replace(/^(?:พัก(?:ที่)?|ที่พัก(?:คืนนี้)?|โรงแรม)\s*[:：-]?\s*/i,'')
-    .replace(/\s*คืนที่\s*\d+.*$/i,'')
-    .trim()||undefined;
+const findAccommodation=(sourceLines:string[],schedule:TripScheduleItem[])=>{
+  const line=sourceLines.map(stripBullet).find(x=>/^(?:พัก(?:ที่)?|ที่พัก(?:คืนนี้)?|โรงแรม)\s*[:：-]?/i.test(x));
+  if(line){
+    return line
+      .replace(/^(?:พัก(?:ที่)?|ที่พัก(?:คืนนี้)?|โรงแรม)\s*[:：-]?\s*/i,'')
+      .replace(/\s*คืนที่\s*\d+.*$/i,'')
+      .trim()||undefined;
+  }
+  const checkIn=schedule.find(x=>/(?:check\s*-?\s*in|เช็กอิน|เข้าที่พัก)/i.test(x.title));
+  if(checkIn)return checkIn.title;
+  const backToHotel=schedule.find(x=>/กลับที่พัก/i.test(x.title));
+  return backToHotel?.title;
 };
 
 const parseDay=(dayNo:number,rawBody:string,headerTitle?:string):TripDay=>{
-  const stopMarkers=/^(?:สรุปสถานที่เที่ยว|สรุปที่พัก|งบประมาณรวม|สรุปงบ|ของที่ควรเตรียม|Checklist|หมายเหตุสำคัญ)\b/i;
   const all=usefulLines(rawBody);
-  const stopIndex=all.findIndex(x=>stopMarkers.test(stripBullet(x)));
+  const stopIndex=all.findIndex(x=>isGlobalSectionHeading(stripBullet(x)));
   const sourceLines=stopIndex>=0?all.slice(0,stopIndex):all;
 
   const budgetStart=sourceLines.findIndex(x=>/^(?:งบ(?:ประมาณ)?(?:วันที่|วัน|DAY)?\s*\d*|ค่าใช้จ่าย(?:ของ)?(?:วัน)?\s*\d*)\s*[:：]?$/i.test(stripBullet(x)));
@@ -190,7 +200,7 @@ const parseDay=(dayNo:number,rawBody:string,headerTitle?:string):TripDay=>{
 
   scheduleSource.forEach((line,index)=>{
     if(index===titleIndex)return;
-    if(/^(?:พัก(?:ที่)?|ที่พัก(?:คืนนี้)?|โรงแรม)\b/i.test(stripBullet(line)))return;
+    if(/^(?:พัก(?:ที่)?|ที่พัก(?:คืนนี้)?|โรงแรม)\s*[:：-]?/i.test(stripBullet(line)))return;
     const time=extractTime(line);
     if(time){
       flush();
@@ -198,7 +208,7 @@ const parseDay=(dayNo:number,rawBody:string,headerTitle?:string):TripDay=>{
       if(time.rest)buffer.push(time.rest);
       return;
     }
-    if(currentTime)buffer.push(line);
+    if(currentTime&&!isGlobalSectionHeading(line))buffer.push(line);
   });
   flush();
 
@@ -206,14 +216,19 @@ const parseDay=(dayNo:number,rawBody:string,headerTitle?:string):TripDay=>{
     const fallback=scheduleSource
       .filter((_,i)=>i!==titleIndex)
       .map(stripBullet)
-      .filter(x=>x&&!isSectionHeading(x)&&!/^(?:พัก(?:ที่)?|ที่พัก|โรงแรม|เส้นทาง)\b/i.test(x));
+      .filter(x=>x&&!isSectionHeading(x)&&!isGlobalSectionHeading(x)&&!/^(?:พัก(?:ที่)?|ที่พัก|โรงแรม|เส้นทาง)\b/i.test(x));
     if(fallback.length)schedule.push(parseScheduleBlock('',fallback,dayNo,1));
   }
 
   const parsedBudget=parseBudgetItems(budgetSource);
-  const routeLine=sourceLines.map(stripBullet).find(x=>/^(?:เส้นทาง(?:วันนี้)?|เดินทาง|ออกจาก|กลับ)\b/i.test(x));
-  const route=routeLine?.replace(/^เส้นทาง(?:วันนี้)?\s*[:：-]?\s*/i,'').trim()||schedule.find(x=>/เดินทาง|ออกจาก|กลับ/.test(x.title))?.title;
-  const accommodation=findAccommodation(sourceLines);
+  const explicitRoute=sourceLines.map(stripBullet).find(x=>/^เส้นทาง(?:วันนี้)?\s*[:：-]/i.test(x));
+  const travelSteps=schedule
+    .map(x=>x.title)
+    .filter(x=>/(?:^ออก|ออกเดินทาง|เดินทางไป|ไป(?:ยัง|ที่)?|ถึง|กลับ|ขึ้นเขา|ลงเขา)/i.test(x));
+  const route=explicitRoute?.replace(/^เส้นทาง(?:วันนี้)?\s*[:：-]?\s*/i,'').trim()
+    || (travelSteps.length?travelSteps.join(' → '):undefined);
+  const accommodation=findAccommodation(sourceLines,schedule);
+  const dayNotes=Array.from(new Set(schedule.flatMap(x=>x.notes||[])));
 
   return {
     day:dayNo,
@@ -224,7 +239,7 @@ const parseDay=(dayNo:number,rawBody:string,headerTitle?:string):TripDay=>{
     accommodation,
     budgetRange:parsedBudget.range,
     budgetItems:parsedBudget.items,
-    note:parsedBudget.notes.length?parsedBudget.notes.join(' · '):undefined,
+    note:dayNotes.length?dayNotes.join(' · '):(parsedBudget.notes.length?parsedBudget.notes.join(' · '):undefined),
   };
 };
 
@@ -253,7 +268,6 @@ const parseDays=(text:string)=>{
 
   if(days.length)return days.sort((a,b)=>a.day-b.day).map((d,i)=>({...d,day:i+1}));
 
-  // Fallback: ข้อความที่ไม่มีหัว DAY จะไม่ล้มเหลว แต่สร้างเป็น DAY 1 ให้แก้ต่อได้
   const fallback=parseDay(1,text);
   return [{...fallback,title:fallback.title==='DAY 1'?'แผนวันที่ 1':fallback.title}];
 };
@@ -300,11 +314,35 @@ const parseBudgetTiers=(sourceLines:string[]):TripBudgetTier[]=>{
     let label=cleanLine.split(/[:：]/)[0].trim();
     if(/^ประมาณ/.test(label)&&index>0)label=stripBullet(sourceLines[index-1]).replace(/:$/,'').trim();
     const perPerson=/ต่อคน|\/\s*คน/.test(cleanLine);
-    if(/งบประหยัด|งบแนะนำ|งบสบาย|เฉลี่ย|โรงแรมดีขึ้น|เตรียมประมาณ/i.test(cleanLine)||/งบประหยัด|งบแนะนำ|งบสบาย|เฉลี่ย/i.test(label)){
+    if(/งบประหยัด|งบแนะนำ|งบสบาย|เฉลี่ย|รวม\s*\d+\s*คน|เตรียมประมาณ/i.test(cleanLine)||/งบประหยัด|งบแนะนำ|งบสบาย|เฉลี่ย/i.test(label)){
       result.push({label,min:range.min,max:range.max,perPerson,text:cleanLine});
     }
   });
   return result;
+};
+
+const deriveAttractions=(days:TripDay[])=>Array.from(new Set(days.flatMap(day=>(day.schedule||[])
+  .map(x=>x.title?.trim())
+  .filter((x):x is string=>!!x)
+  .filter(x=>!/(?:^ออก|ออกเดินทาง|เดินทาง|^ไป(?:ยัง|ที่)?|^ถึง|^กลับ|ตื่น|Breakfast|Lunch|Dinner|กินข้าว|Check-?in|Check-?out|ขึ้นเขา|ลงเขา)/i.test(x))
+)));
+
+const deriveImportantNotes=(days:TripDay[])=>Array.from(new Set(days.flatMap(day=>(day.schedule||[]).flatMap(x=>x.notes||[]))));
+
+const derivePacking=(importantNotes:string[])=>importantNotes.filter(x=>/(?:รองเท้า|เตรียมน้ำ|น้ำอย่างน้อย|เสื้อกันฝน|หมวก|ไฟฉาย)/i.test(x));
+
+const findOverviewBudget=(sourceLines:string[],budgetLines:string[])=>{
+  const preferred=[
+    ...budgetLines.filter(x=>/^รวม\s*\d+\s*คน/i.test(stripBullet(x))),
+    ...budgetLines.filter(x=>/^(?:รวม|รวมประมาณ|ยอดรวม|งบรวม)/i.test(stripBullet(x))),
+    ...sourceLines.filter(x=>/^รวม\s*\d+\s*คน/i.test(stripBullet(x))),
+  ];
+  for(const line of preferred){
+    const range=parseMoneyRange(stripBullet(line));
+    if(range)return range;
+  }
+  const fallback=budgetLines.map(stripBullet).map(parseMoneyRange).find(Boolean);
+  return fallback||undefined;
 };
 
 export const parseDetailedTripText=(raw:string):ParsedTripText=>{
@@ -313,19 +351,11 @@ export const parseDetailedTripText=(raw:string):ParsedTripText=>{
   const firstDayIndex=sourceLines.findIndex(x=>!!getDayHeader(x));
   const preamble=firstDayIndex>=0?sourceLines.slice(0,firstDayIndex):sourceLines.slice(0,12);
 
-  const title=preamble.find(x=>/^แผน(?:เที่ยว|การเดินทาง)|^ทริป\b/i.test(stripBullet(x)))
-    || preamble.find(x=>!/(?:งบ|เส้นทาง|การเดินทาง|เดินทางโดย|หมายเหตุ|สำหรับ\s*\d+\s*คน)/i.test(stripBullet(x)))
+  const title=preamble.find(x=>/^แผน(?:เที่ยว|การเดินทาง)|^ทริป/i.test(stripBullet(x)))
+    || preamble.find(x=>!/(?:งบ|เส้นทาง|การเดินทาง|เดินทางโดย|หมายเหตุ|(?:สำหรับ|จำนวน|รวม)\s*\d+\s*คน)/i.test(stripBullet(x)))
     || sourceLines[0];
 
-  const budgetLine=sourceLines.find(x=>/(?:งบ|ค่าใช้จ่าย).*(?:บาท|฿|THB|\d{3,})/i.test(stripBullet(x)));
-  const travelerLine=sourceLines.find(x=>/(?:สำหรับ|จำนวน)\s*\d+\s*คน/i.test(stripBullet(x)))||budgetLine;
-  const travelersMatch=travelerLine?.match(/(?:สำหรับ|จำนวน)\s*(\d+)\s*คน/i);
-  const overviewBudgetRange=budgetLine?parseMoneyRange(stripBullet(budgetLine)):undefined;
-
-  const transportLine=sourceLines.find(x=>/^(?:รูปแบบการเดินทาง|การเดินทาง|เดินทางโดย)\s*[:：-]/i.test(stripBullet(x)));
-  const transport=transportLine?.replace(/^(?:รูปแบบการเดินทาง|การเดินทาง|เดินทางโดย)\s*[:：-]\s*/i,'').trim();
-
-  const routeLines=findSection(sourceLines,/^เส้นทางหลัก\b/i,[/^หมายเหตุ\b/i,/^งบ\b/i,/^สรุป/i,/^ของที่ควรเตรียม/i]);
+  const routeLines=findSection(sourceLines,/^เส้นทาง(?:หลัก)?\s*[:：]?/i,[/^หมายเหตุ\b/i,/^งบ(?:รวม|ประมาณรวม)?\b/i,/^สรุป/i,/^ของที่ควรเตรียม/i]);
   let routeText=routeLines.join(' ').trim();
   if(!routeText){
     const arrowLine=preamble.find(x=>/(?:→|->|=>)/.test(x));
@@ -337,17 +367,32 @@ export const parseDetailedTripText=(raw:string):ParsedTripText=>{
   const note=noteLine?.replace(/^หมายเหตุ\s*[:：-]\s*/i,'').trim();
   const days=parseDays(text);
 
-  const attractionsLines=findSection(sourceLines,/^สรุปสถานที่เที่ยว\b|^สถานที่เที่ยวทั้งหมด\b/i,[/^สรุปที่พัก/i,/^งบประมาณรวม/i,/^สรุปงบ/i,/^ของที่ควรเตรียม/i,/^Checklist/i,/^หมายเหตุสำคัญ/i]);
-  const accommodationLines=findSection(sourceLines,/^สรุปที่พัก\b|^ที่พักรายคืน\b/i,[/^งบประมาณรวม/i,/^สรุปงบ/i,/^ของที่ควรเตรียม/i,/^Checklist/i,/^หมายเหตุสำคัญ/i]);
-  const budgetLines=findSection(sourceLines,/^งบประมาณรวม\b|^สรุปงบ\b/i,[/^ของที่ควรเตรียม/i,/^Checklist/i,/^หมายเหตุสำคัญ/i]);
+  const attractionsLines=findSection(sourceLines,/^สรุปสถานที่เที่ยว\b|^สถานที่เที่ยวทั้งหมด\b/i,[/^สรุปที่พัก/i,/^งบ(?:รวม|ประมาณรวม)\b/i,/^สรุปงบ/i,/^ของที่ควรเตรียม/i,/^Checklist/i,/^หมายเหตุสำคัญ/i]);
+  const accommodationLines=findSection(sourceLines,/^สรุปที่พัก\b|^ที่พักรายคืน\b/i,[/^งบ(?:รวม|ประมาณรวม)\b/i,/^สรุปงบ/i,/^ของที่ควรเตรียม/i,/^Checklist/i,/^หมายเหตุสำคัญ/i]);
+  const budgetLines=findSection(sourceLines,/^งบรวม\b|^งบประมาณรวม\b|^สรุปงบ\b|^ค่าใช้จ่ายรวม\b/i,[/^ของที่ควรเตรียม/i,/^Checklist/i,/^หมายเหตุสำคัญ/i]);
   const packingLines=findSection(sourceLines,/^ของที่ควรเตรียม\b|^Checklist\b|^เช็กลิสต์\b/i,[/^หมายเหตุสำคัญ/i]);
   const importantLines=findSection(sourceLines,/^หมายเหตุสำคัญ\b|^ข้อควรระวังสำคัญ\b/i,[]);
+
+  const travelerLine=sourceLines.find(x=>/(?:สำหรับ|จำนวน|รวม)\s*\d+\s*คน/i.test(stripBullet(x)));
+  const travelersMatch=travelerLine?.match(/(?:สำหรับ|จำนวน|รวม)\s*(\d+)\s*คน/i);
+  const overviewBudgetRange=findOverviewBudget(sourceLines,budgetLines);
+
+  const transportLine=sourceLines.find(x=>/^(?:รูปแบบการเดินทาง|การเดินทาง|เดินทางโดย)\s*[:：-]/i.test(stripBullet(x)));
+  let transport=transportLine?.replace(/^(?:รูปแบบการเดินทาง|การเดินทาง|เดินทางโดย)\s*[:：-]\s*/i,'').trim();
+  if(!transport&&/(?:เวลาขับ|น้ำมัน|ขับประมาณ|ระยะทาง.*กม)/i.test(text))transport='รถยนต์ส่วนตัว';
+  if(/4WD/i.test(text))transport=transport?`${transport} + 4WD`:'4WD';
 
   const accommodationPlan=parseAccommodationPlan(accommodationLines);
   if(!accommodationPlan.length){
     days.forEach((day,index)=>{if(day.accommodation)accommodationPlan.push({night:index+1,location:day.accommodation});});
   }
 
+  const explicitAttractions=parseNumberedList(attractionsLines);
+  const derivedImportant=deriveImportantNotes(days);
+  const explicitImportant=parseNumberedList(importantLines);
+  const importantNotes=Array.from(new Set([...explicitImportant,...derivedImportant]));
+  const explicitPacking=parseNumberedList(packingLines);
+  const packingList=explicitPacking.length?explicitPacking:derivePacking(importantNotes);
   const budgetSummaryLines=budgetLines.map(stripBullet).filter(Boolean);
 
   return {
@@ -359,11 +404,11 @@ export const parseDetailedTripText=(raw:string):ParsedTripText=>{
     routeStops,
     note:note||undefined,
     days,
-    attractionsSummary:parseNumberedList(attractionsLines),
+    attractionsSummary:explicitAttractions.length?explicitAttractions:deriveAttractions(days),
     accommodationPlan,
     budgetSummaryLines,
     budgetTiers:parseBudgetTiers(budgetSummaryLines),
-    packingList:parseNumberedList(packingLines),
-    importantNotes:parseNumberedList(importantLines),
+    packingList,
+    importantNotes,
   };
 };
