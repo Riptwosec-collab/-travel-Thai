@@ -17,6 +17,7 @@ import {
 export default function Account(){
   const router = useRouter();
   const [password,setPassword] = useState('');
+  const [showPassword,setShowPassword] = useState(false);
   const [session,setSession] = useState<TravelSession|null>(null);
   const [loading,setLoading] = useState(false);
   const [booting,setBooting] = useState(true);
@@ -38,7 +39,8 @@ export default function Account(){
   };
 
   const login = async () => {
-    if (!password) {
+    if (loading) return;
+    if (!password.trim()) {
       Alert.alert('กรอกรหัสผ่าน','กรุณากรอกรหัสผ่านก่อนเข้าสู่ระบบ');
       return;
     }
@@ -46,6 +48,7 @@ export default function Account(){
       const next = await loginTravelAccount(password);
       setSession(next);
       setPassword('');
+      setShowPassword(false);
     },'เข้าสู่ระบบแล้ว');
   };
 
@@ -54,6 +57,7 @@ export default function Account(){
       await logoutTravelAccount();
       setSession(null);
       setPassword('');
+      setShowPassword(false);
     },'ออกจากระบบแล้ว');
   };
 
@@ -96,8 +100,8 @@ export default function Account(){
         <View style={s.readyCard}>
           <View style={s.readyIcon}><Ionicons name="person-circle" size={32} color={COLORS.primary}/></View>
           <View style={s.profileText}>
-            <Text style={s.profileTitle}>สมัครบัญชีเรียบร้อยแล้ว</Text>
-            <Text style={s.muted}>ระบบนี้อนุญาตให้เข้าสู่ระบบด้วยบัญชี {TRAVEL_USERNAME} เท่านั้น</Text>
+            <Text style={s.profileTitle}>บัญชีพร้อมใช้งาน</Text>
+            <Text style={s.muted}>เข้าสู่ระบบด้วยบัญชี {TRAVEL_USERNAME} เท่านั้น</Text>
           </View>
           <Ionicons name="checkmark-circle" size={24} color={COLORS.visited}/>
         </View>
@@ -106,22 +110,30 @@ export default function Account(){
         <View style={s.fixedInput}><Ionicons name="person" size={18} color={COLORS.primary}/><Text style={s.fixedInputText}>{TRAVEL_USERNAME}</Text><Ionicons name="lock-closed" size={15} color={COLORS.textMuted}/></View>
 
         <Text style={s.label}>รหัสผ่าน</Text>
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="current-password"
-          placeholder="กรอกรหัสผ่าน"
-          placeholderTextColor={COLORS.textMuted}
-          style={s.input}
-          onSubmitEditing={login}
-        />
+        <View style={s.passwordWrap}>
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="current-password"
+            textContentType="password"
+            placeholder="กรอกรหัสผ่าน"
+            placeholderTextColor={COLORS.textMuted}
+            style={s.passwordInput}
+            onSubmitEditing={login}
+            returnKeyType="go"
+          />
+          <Pressable hitSlop={10} style={s.eyeButton} onPress={()=>setShowPassword(v=>!v)}>
+            <Ionicons name={showPassword?'eye-off-outline':'eye-outline'} size={21} color={COLORS.primary}/>
+          </Pressable>
+        </View>
+        <Text style={s.helper}>แตะรูปตาเพื่อตรวจสอบตัวพิมพ์ใหญ่/เล็กก่อนเข้าสู่ระบบ ระบบจะตัดช่องว่างหน้า–ท้ายให้อัตโนมัติ</Text>
 
         <Pressable style={[s.primary,loading&&s.disabled]} disabled={loading} onPress={login}>
           {loading?<ActivityIndicator color="#fff"/>:<Ionicons name="log-in" size={20} color="#fff"/>}
-          <Text style={s.primaryText}>เข้าสู่ระบบ</Text>
+          <Text style={s.primaryText}>{loading?'กำลังเข้าสู่ระบบ...':'เข้าสู่ระบบ'}</Text>
         </Pressable>
 
         <View style={s.securityNote}><Ionicons name="shield-checkmark-outline" size={18} color={COLORS.primary}/><Text style={s.securityText}>ไม่มี Email Login และไม่อนุญาตให้สร้าง Username อื่น</Text></View>
@@ -140,9 +152,12 @@ const s=StyleSheet.create({
   emptyTitle:{fontWeight:'900',fontSize:18,color:COLORS.text,marginTop:10},
   muted:{color:COLORS.textMuted,lineHeight:20,marginTop:2},
   label:{fontSize:12,fontWeight:'900',color:COLORS.text,marginTop:5},
-  input:{height:52,borderRadius:RADIUS.md,borderWidth:1,borderColor:'rgba(255,255,255,.75)',backgroundColor:'rgba(255,255,255,.74)',paddingHorizontal:14,color:COLORS.text,fontSize:16,fontWeight:'700'},
   fixedInput:{height:52,borderRadius:RADIUS.md,borderWidth:1,borderColor:'rgba(255,255,255,.75)',backgroundColor:'rgba(255,255,255,.64)',paddingHorizontal:14,flexDirection:'row',alignItems:'center',gap:9},
   fixedInputText:{flex:1,color:COLORS.text,fontSize:16,fontWeight:'900'},
+  passwordWrap:{height:52,borderRadius:RADIUS.md,borderWidth:1,borderColor:'rgba(255,255,255,.75)',backgroundColor:'rgba(255,255,255,.74)',flexDirection:'row',alignItems:'center',overflow:'hidden'},
+  passwordInput:{flex:1,height:'100%',paddingHorizontal:14,color:COLORS.text,fontSize:16,fontWeight:'700',outlineStyle:'none' as any},
+  eyeButton:{width:52,height:52,alignItems:'center',justifyContent:'center'},
+  helper:{color:COLORS.textMuted,fontSize:11,lineHeight:17,marginTop:-3},
   primary:{height:52,borderRadius:RADIUS.md,backgroundColor:COLORS.dark,alignItems:'center',justifyContent:'center',flexDirection:'row',gap:8,marginTop:7},
   primaryText:{color:'#fff',fontWeight:'900'},
   secondary:{height:52,borderRadius:RADIUS.md,backgroundColor:'rgba(255,255,255,.72)',borderWidth:1,borderColor:'rgba(255,255,255,.75)',alignItems:'center',justifyContent:'center',flexDirection:'row',gap:8},
