@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, FlatList, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, FlatList, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -11,7 +11,8 @@ import { useTravelStore } from '@/store/useTravelStore';
 
 export default function Home(){
  const router=useRouter();
- const {width}=useWindowDimensions();
+ const viewport=useWindowDimensions();
+ const width=Platform.OS==='web'?402:viewport.width;
  const wide=width>=1060;
  const tablet=width>=720;
  const {visitedProvinceIds,wishlistProvinceIds,visitedPlaceIds,wishlistPlaceIds,preferences}=useTravelStore();
