@@ -15,18 +15,14 @@ export const GLASS = {
   goldStrong: '#E9B95B',
   ink: '#063846',
   inkSoft: '#2A6672',
-
-  // Dark cyan glass keeps white typography readable even on bright travel photos.
   glass: 'rgba(3,58,73,0.42)',
   glassStrong: 'rgba(3,53,68,0.56)',
   glassSoft: 'rgba(4,70,86,0.30)',
   glassDark: 'rgba(2,42,55,0.66)',
   glassUltra: 'rgba(2,35,47,0.76)',
-
   border: 'rgba(255,255,255,0.24)',
   borderStrong: 'rgba(255,255,255,0.42)',
   highlight: 'rgba(255,255,255,0.62)',
-
   overlayTop: 'rgba(2,77,102,0.54)',
   overlayMid: 'rgba(0,128,151,0.28)',
   overlayBottom: 'rgba(2,45,59,0.82)',
@@ -34,14 +30,15 @@ export const GLASS = {
   shadow: 'rgba(1,31,43,0.38)',
 };
 
-export const GLASS_RADIUS = { sm: 16, md: 22, lg: 28, xl: 34, pill: 999 };
-export const GLASS_SPACING = { xs: 6, sm: 10, md: 16, lg: 22, xl: 30, xxl: 40 };
+// Compact phone-first tokens. Large desktop values made cards and spacing feel oversized in a 360–402px frame.
+export const GLASS_RADIUS = { sm: 13, md: 18, lg: 22, xl: 26, pill: 999 };
+export const GLASS_SPACING = { xs: 5, sm: 8, md: 13, lg: 18, xl: 23, xxl: 30 };
 
 export const GLASS_TEXT = {
   primary: GLASS.white,
-  secondary: 'rgba(255,255,255,0.88)',
-  tertiary: 'rgba(255,255,255,0.72)',
-  muted: 'rgba(255,255,255,0.62)',
+  secondary: 'rgba(255,255,255,0.90)',
+  tertiary: 'rgba(255,255,255,0.74)',
+  muted: 'rgba(255,255,255,0.64)',
   gold: GLASS.gold,
 };
 
@@ -50,21 +47,21 @@ export const glassSurface = (strong = false) => ({
   borderWidth: 1,
   borderColor: strong ? GLASS.borderStrong : GLASS.border,
   shadowColor: GLASS.shadow,
-  shadowOffset: { width: 0, height: 16 },
-  shadowOpacity: Platform.OS === 'web' ? 0.28 : 0.20,
-  shadowRadius: 30,
-  elevation: 10,
+  shadowOffset: { width: 0, height: 9 },
+  shadowOpacity: Platform.OS === 'web' ? 0.24 : 0.18,
+  shadowRadius: 20,
+  elevation: 7,
   ...(Platform.OS === 'web' ? ({
-    backdropFilter: strong ? 'blur(32px) saturate(155%)' : 'blur(24px) saturate(145%)',
-    WebkitBackdropFilter: strong ? 'blur(32px) saturate(155%)' : 'blur(24px) saturate(145%)',
+    backdropFilter: strong ? 'blur(28px) saturate(150%)' : 'blur(22px) saturate(142%)',
+    WebkitBackdropFilter: strong ? 'blur(28px) saturate(150%)' : 'blur(22px) saturate(142%)',
     boxShadow: strong
-      ? '0 18px 46px rgba(1,31,43,.28), inset 0 1px 0 rgba(255,255,255,.22)'
-      : '0 14px 34px rgba(1,31,43,.22), inset 0 1px 0 rgba(255,255,255,.14)',
+      ? '0 12px 32px rgba(1,31,43,.25), inset 0 1px 0 rgba(255,255,255,.20)'
+      : '0 9px 24px rgba(1,31,43,.20), inset 0 1px 0 rgba(255,255,255,.13)',
   } as any) : {}),
 });
 
 export const glassPress = {
   pressedScale: 0.97,
-  hoverLift: -4,
-  duration: 220,
+  hoverLift: -2,
+  duration: 180,
 };
