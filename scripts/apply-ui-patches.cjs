@@ -25,7 +25,7 @@ function patchTripPlanner() {
   if (!src.includes('async function copyTripPlaceName')) {
     src = src.replace(
       "const blankSchedule=():TripScheduleItem=>({id:uid('slot'),time:'',title:'',detail:'',activities:[],notes:[]});",
-      `async function copyTripPlaceName(name:string){\n  const clean=(name||'').trim();\n  if(!clean)return false;\n  try{\n    if(Platform.OS==='web'){\n      const nav=(globalThis as any).navigator;\n      if(nav?.clipboard?.writeText){\n        await nav.clipboard.writeText(clean);\n        return true;\n      }\n      const win=(globalThis as any).window;\n      if(win?.prompt){\n        win.prompt('คัดลอกชื่อสถานที่',clean);\n        return true;\n      }\n    }\n    await Share.share({message:clean});\n    return true;\n  }catch{\n    Alert.alert('คัดลอกไม่สำเร็จ',clean);\n    return false;\n  }\n}\n\nconst blankSchedule=():TripScheduleItem=>({id:uid('slot'),time:'',title:'',detail:'',activities:[],notes:[]});`
+      "async function copyTripPlaceName(name:string){\n  const clean=(name||'').trim();\n  if(!clean)return false;\n  try{\n    if(Platform.OS==='web'){\n      const nav=(globalThis as any).navigator;\n      if(nav?.clipboard?.writeText){\n        await nav.clipboard.writeText(clean);\n        return true;\n      }\n      const win=(globalThis as any).window;\n      if(win?.prompt){\n        win.prompt('คัดลอกชื่อสถานที่',clean);\n        return true;\n      }\n    }\n    await Share.share({message:clean});\n    return true;\n  }catch{\n    Alert.alert('คัดลอกไม่สำเร็จ',clean);\n    return false;\n  }\n}\n\nconst blankSchedule=():TripScheduleItem=>({id:uid('slot'),time:'',title:'',detail:'',activities:[],notes:[]});"
     );
   }
 
@@ -37,8 +37,8 @@ function patchTripPlanner() {
   }
 
   src = src.replace(
-    `<View style={s.previewSlotMain}><Text style={s.previewTime}>{x.time||'--:--'}</Text><Text style={s.previewSlotText}>{x.title||'กิจกรรม'}</Text></View>`,
-    `<View style={s.previewSlotMain}><Text style={s.previewTime}>{x.time||'--:--'}</Text><Text style={s.previewSlotText}>{x.title||'กิจกรรม'}</Text><Pressable accessibilityLabel={\`คัดลอก ${x.title||'กิจกรรม'}\`} style={[s.copyPlaceButton,copiedPlace===(x.title||'กิจกรรม')&&s.copyPlaceButtonDone]} onPress={()=>copyName(x.title||'กิจกรรม')}><Ionicons name={copiedPlace===(x.title||'กิจกรรม')?'checkmark':'copy-outline'} size={14} color={copiedPlace===(x.title||'กิจกรรม')?'#2FAE68':COLORS.primary}/></Pressable></View>`
+    "<View style={s.previewSlotMain}><Text style={s.previewTime}>{x.time||'--:--'}</Text><Text style={s.previewSlotText}>{x.title||'กิจกรรม'}</Text></View>",
+    "<View style={s.previewSlotMain}><Text style={s.previewTime}>{x.time||'--:--'}</Text><Text style={s.previewSlotText}>{x.title||'กิจกรรม'}</Text><Pressable accessibilityLabel={'คัดลอก '+(x.title||'กิจกรรม')} style={[s.copyPlaceButton,copiedPlace===(x.title||'กิจกรรม')&&s.copyPlaceButtonDone]} onPress={()=>copyName(x.title||'กิจกรรม')}><Ionicons name={copiedPlace===(x.title||'กิจกรรม')?'checkmark':'copy-outline'} size={14} color={copiedPlace===(x.title||'กิจกรรม')?'#2FAE68':COLORS.primary}/></Pressable></View>"
   );
 
   if (!src.includes('copyPlaceButton:{')) {
