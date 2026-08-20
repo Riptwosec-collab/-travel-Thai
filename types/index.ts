@@ -46,6 +46,7 @@ export interface TripScheduleItem {
   activities?: string[];
   notes?: string[];
   completed?: boolean;
+  skipped?: boolean;
 }
 
 export interface TripDayBudgetItem {
@@ -94,6 +95,7 @@ export interface TripActualExpense {
   category: 'เดินทาง' | 'ที่พัก' | 'อาหาร' | 'กิจกรรม' | 'อื่น ๆ';
   amount: number;
   note?: string;
+  day?: number;
   createdAt: string;
 }
 
