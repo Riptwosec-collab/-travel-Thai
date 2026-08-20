@@ -1,3 +1,9 @@
 THAILAND GLASS production release
-2026-08-18
+2026-08-20
+Phone-first mobile layout release
+402px web app frame + mobile logical dimensions
+Trip Planner rebuilt for single-column phone editing
+Automatic text split retained and mobile-optimized
+Bottom navigation resized for phone proportions
+Shared spacing/radius system compacted for all screens
 Preserve -> Refactor -> Upgrade -> Integrate
