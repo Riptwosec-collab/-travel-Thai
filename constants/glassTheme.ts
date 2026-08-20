@@ -1,41 +1,41 @@
 import { Platform } from 'react-native';
 
 export const GLASS = {
-  // Thailand Glass — a shared ocean-blue palette for every route.
-  aqua: '#82F4FB',
-  cyan: '#45E5F1',
-  turquoise: '#3BDEC8',
-  teal: '#087F98',
-  tealDeep: '#064A63',
-  tealNight: '#032F46',
-  emerald: '#38DBAC',
-  sky: '#C9F5FA',
+  // Thailand Glass — bright Andaman water, pale sky and warm temple gold.
+  aqua: '#7EF4F4',
+  cyan: '#20D5DF',
+  turquoise: '#23C9C0',
+  teal: '#087F94',
+  tealDeep: '#075A70',
+  tealNight: '#07566C',
+  emerald: '#56E2B5',
+  sky: '#D9FAFC',
   white: '#FFFFFF',
   whiteSoft: '#F2FCFD',
-  gold: '#F4D69B',
-  goldStrong: '#E9B95B',
-  ink: '#042C42',
-  inkSoft: '#2A7282',
+  gold: '#FFE1A3',
+  goldStrong: '#E9B85A',
+  ink: '#063D50',
+  inkSoft: '#3B7B89',
 
-  // Dark cyan glass keeps white typography readable even on bright travel photos.
-  glass: 'rgba(3,50,72,0.46)',
-  glassStrong: 'rgba(3,43,65,0.66)',
-  glassSoft: 'rgba(7,83,105,0.34)',
-  glassDark: 'rgba(2,33,52,0.74)',
-  glassUltra: 'rgba(1,26,43,0.84)',
+  // Airy aqua glass from the reference — readable without hiding the scenery.
+  glass: 'rgba(94,206,222,0.23)',
+  glassStrong: 'rgba(16,126,151,0.38)',
+  glassSoft: 'rgba(185,239,245,0.18)',
+  glassDark: 'rgba(5,84,105,0.54)',
+  glassUltra: 'rgba(4,67,88,0.70)',
 
-  border: 'rgba(255,255,255,0.24)',
-  borderStrong: 'rgba(255,255,255,0.42)',
-  highlight: 'rgba(255,255,255,0.62)',
+  border: 'rgba(231,253,255,0.34)',
+  borderStrong: 'rgba(255,255,255,0.52)',
+  highlight: 'rgba(255,255,255,0.76)',
 
-  overlayTop: 'rgba(3,59,91,0.68)',
-  overlayMid: 'rgba(0,116,145,0.35)',
-  overlayBottom: 'rgba(2,31,55,0.88)',
-  overlayVignette: 'rgba(0,19,39,0.24)',
-  shadow: 'rgba(0,20,43,0.46)',
+  overlayTop: 'rgba(4,121,151,0.35)',
+  overlayMid: 'rgba(13,164,185,0.16)',
+  overlayBottom: 'rgba(3,83,105,0.48)',
+  overlayVignette: 'rgba(0,52,70,0.08)',
+  shadow: 'rgba(0,52,70,0.28)',
 };
 
-export const GLASS_RADIUS = { sm: 16, md: 22, lg: 28, xl: 34, pill: 999 };
+export const GLASS_RADIUS = { sm: 14, md: 19, lg: 24, xl: 30, pill: 999 };
 export const GLASS_SPACING = { xs: 6, sm: 10, md: 16, lg: 22, xl: 30, xxl: 40 };
 
 export const GLASS_TEXT = {
@@ -53,14 +53,14 @@ export const glassSurface = (strong = false) => ({
   shadowColor: GLASS.shadow,
   shadowOffset: { width: 0, height: 14 },
   shadowOpacity: Platform.OS === 'web' ? 0.30 : 0.24,
-  shadowRadius: 28,
-  elevation: 10,
+  shadowRadius: 22,
+  elevation: 8,
   ...(Platform.OS === 'web' ? ({
-    backdropFilter: strong ? 'blur(32px) saturate(155%)' : 'blur(24px) saturate(145%)',
-    WebkitBackdropFilter: strong ? 'blur(32px) saturate(155%)' : 'blur(24px) saturate(145%)',
+    backdropFilter: strong ? 'blur(28px) saturate(145%)' : 'blur(20px) saturate(138%)',
+    WebkitBackdropFilter: strong ? 'blur(28px) saturate(145%)' : 'blur(20px) saturate(138%)',
     boxShadow: strong
-      ? '0 18px 46px rgba(0,20,43,.34), inset 0 1px 0 rgba(255,255,255,.26)'
-      : '0 14px 34px rgba(0,20,43,.28), inset 0 1px 0 rgba(255,255,255,.16)',
+      ? '0 16px 38px rgba(0,65,82,.25), inset 0 1px 0 rgba(255,255,255,.34)'
+      : '0 12px 28px rgba(0,65,82,.20), inset 0 1px 0 rgba(255,255,255,.24)',
   } as any) : {}),
 });
 
