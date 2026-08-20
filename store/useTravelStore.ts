@@ -33,7 +33,34 @@ interface TravelState {
 const initialPreferences: TravelPreferences = {
   interests: ['ธรรมชาติ','คาเฟ่'], budget:'กลาง', travelStyle:'คู่', favoriteRegions:['ภาคเหนือ'], onboardingDone:false,
 };
+
 const toggle=(arr:string[],id:string)=>arr.includes(id)?arr.filter(x=>x!==id):[...arr,id];
+const stringArray=(value:unknown):string[]=>Array.isArray(value)?value.filter((x):x is string=>typeof x==='string'):[];
+
+function sanitizePreferences(value:any):TravelPreferences{
+  return {
+    ...initialPreferences,
+    ...(value&&typeof value==='object'?value:{}),
+    interests:Array.isArray(value?.interests)?stringArray(value.interests):initialPreferences.interests,
+    favoriteRegions:Array.isArray(value?.favoriteRegions)?stringArray(value.favoriteRegions) as Region[]:initialPreferences.favoriteRegions,
+    budget:typeof value?.budget==='string'?value.budget as TravelPreferences['budget']:initialPreferences.budget,
+    travelStyle:typeof value?.travelStyle==='string'?value.travelStyle as TravelPreferences['travelStyle']:initialPreferences.travelStyle,
+    onboardingDone:typeof value?.onboardingDone==='boolean'?value.onboardingDone:initialPreferences.onboardingDone,
+  };
+}
+
+function sanitizePersisted(value:any){
+  const raw=value&&typeof value==='object'?value:{};
+  return {
+    visitedPlaceIds:stringArray(raw.visitedPlaceIds),
+    wishlistPlaceIds:stringArray(raw.wishlistPlaceIds),
+    visitedProvinceIds:stringArray(raw.visitedProvinceIds),
+    wishlistProvinceIds:stringArray(raw.wishlistProvinceIds),
+    trips:Array.isArray(raw.trips)?raw.trips:[],
+    journals:Array.isArray(raw.journals)?raw.journals:[],
+    preferences:sanitizePreferences(raw.preferences),
+  };
+}
 
 export const useTravelStore = create<TravelState>()(persist((set)=>({
   searchQuery:'', selectedCategory:'ทั้งหมด', selectedRegion:'ทั้งหมด',
@@ -51,10 +78,16 @@ export const useTravelStore = create<TravelState>()(persist((set)=>({
   deleteTrip:(id)=>set(s=>({trips:s.trips.filter(t=>t.id!==id)})),
   addJournal:(entry)=>set(s=>({journals:[entry,...s.journals]})),
   deleteJournal:(id)=>set(s=>({journals:s.journals.filter(j=>j.id!==id)})),
-  setPreferences:(patch)=>set(s=>({preferences:{...s.preferences,...patch}})),
+  setPreferences:(patch)=>set(s=>({preferences:sanitizePreferences({...s.preferences,...patch})})),
   resetAll:()=>set({searchQuery:'',selectedCategory:'ทั้งหมด',selectedRegion:'ทั้งหมด',visitedPlaceIds:[],wishlistPlaceIds:[],visitedProvinceIds:[],wishlistProvinceIds:[],trips:[],journals:[],preferences:initialPreferences}),
 }),{
   name:'travel-thai-v2',
+  version:3,
   storage:createJSONStorage(()=>AsyncStorage),
   partialize:(s)=>({visitedPlaceIds:s.visitedPlaceIds,wishlistPlaceIds:s.wishlistPlaceIds,visitedProvinceIds:s.visitedProvinceIds,wishlistProvinceIds:s.wishlistProvinceIds,trips:s.trips,journals:s.journals,preferences:s.preferences}),
+  migrate:(persistedState)=>sanitizePersisted(persistedState),
+  merge:(persistedState,currentState)=>{
+    const safe=sanitizePersisted(persistedState);
+    return {...currentState,...safe,preferences:sanitizePreferences(safe.preferences)};
+  },
 }));
