@@ -10,6 +10,8 @@ export interface TravelSession {
   expiresAt: string;
 }
 
+const normalizePassword = (value: string) => value.normalize('NFKC').trim();
+
 const readLocalSession = async (): Promise<TravelSession | null> => {
   const raw = await AsyncStorage.getItem(SESSION_KEY);
   if (!raw) return null;
@@ -28,15 +30,18 @@ const readLocalSession = async (): Promise<TravelSession | null> => {
 
 export async function loginTravelAccount(password: string): Promise<TravelSession> {
   if (!supabase) throw new Error('ยังไม่ได้เชื่อม Supabase');
+  const normalizedPassword = normalizePassword(password);
+  if (!normalizedPassword) throw new Error('กรุณากรอกรหัสผ่าน');
+
   const { data, error } = await supabase.rpc('travel_login', {
     p_username: TRAVEL_USERNAME,
-    p_password: password,
+    p_password: normalizedPassword,
   });
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
   if (!row || row.error_code || !row.session_token) {
     if (row?.error_code === 'try_later') throw new Error('ลองผิดหลายครั้ง ระบบล็อกชั่วคราว 10 นาที');
-    throw new Error('Username หรือรหัสผ่านไม่ถูกต้อง');
+    throw new Error('รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบตัวพิมพ์ใหญ่/เล็กแล้วลองใหม่');
   }
   const session: TravelSession = {
     token: row.session_token,
