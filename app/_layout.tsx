@@ -1,13 +1,48 @@
 import 'react-native-reanimated';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Dimensions, Platform, StyleSheet, View } from 'react-native';
 import { GLASS } from '@/constants/glassTheme';
 
 const WEB_APP_WIDTH = 402;
 
+function usePhoneDimensionsOnWeb(){
+  useEffect(()=>{
+    if(Platform.OS!=='web')return;
+    let frame=0;
+    const sync=()=>{
+      if(typeof cancelAnimationFrame==='function'&&frame)cancelAnimationFrame(frame);
+      const apply=()=>{
+        try{
+          const current=Dimensions.get('window');
+          const screen=Dimensions.get('screen');
+          const browserWidth=typeof window!=='undefined'?window.innerWidth:WEB_APP_WIDTH;
+          const browserHeight=typeof window!=='undefined'?window.innerHeight:current.height;
+          const phoneWidth=Math.min(WEB_APP_WIDTH,Math.max(320,browserWidth||WEB_APP_WIDTH));
+          Dimensions.set({
+            window:{...current,width:phoneWidth,height:browserHeight},
+            screen:{...screen,width:phoneWidth,height:browserHeight},
+          } as any);
+        }catch(error){
+          console.warn('Phone viewport sync skipped',error);
+        }
+      };
+      if(typeof requestAnimationFrame==='function')frame=requestAnimationFrame(apply);
+      else apply();
+    };
+    sync();
+    if(typeof window!=='undefined')window.addEventListener('resize',sync);
+    return()=>{
+      if(typeof window!=='undefined')window.removeEventListener('resize',sync);
+      if(typeof cancelAnimationFrame==='function'&&frame)cancelAnimationFrame(frame);
+    };
+  },[]);
+}
+
 export default function RootLayout(){
+  usePhoneDimensionsOnWeb();
+
   const navigation = <>
     <StatusBar style="light" translucent/>
     <Stack screenOptions={{
