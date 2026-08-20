@@ -30,9 +30,19 @@ export const GLASS = {
   shadow: 'rgba(1,31,43,0.38)',
 };
 
-// Compact phone-first tokens. Large desktop values made cards and spacing feel oversized in a 360–402px frame.
+// Phone-first visual tokens shared by new and upgraded screens.
 export const GLASS_RADIUS = { sm: 13, md: 18, lg: 22, xl: 26, pill: 999 };
 export const GLASS_SPACING = { xs: 5, sm: 8, md: 13, lg: 18, xl: 23, xxl: 30 };
+export const GLASS_LAYOUT = {
+  phoneMaxWidth: 430,
+  webPhoneWidth: 402,
+  pagePadding: 14,
+  sectionGap: 12,
+  cardPadding: 13,
+  touchTarget: 44,
+  compactTouchTarget: 36,
+  bottomContentPadding: 120,
+};
 
 export const GLASS_TEXT = {
   primary: GLASS.white,
