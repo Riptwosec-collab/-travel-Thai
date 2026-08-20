@@ -1,39 +1,13 @@
 import 'react-native-reanimated';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Dimensions, Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { GLASS } from '@/constants/glassTheme';
 
 const WEB_APP_WIDTH = 402;
 
-function syncMobileWebDimensions(){
-  if(Platform.OS !== 'web' || typeof window === 'undefined') return;
-
-  const width = Math.min(window.innerWidth, WEB_APP_WIDTH);
-  const height = window.innerHeight;
-  const scale = window.devicePixelRatio || 1;
-
-  // Keep every useWindowDimensions() consumer in the app on the mobile branch,
-  // even when the website is opened on a desktop monitor.
-  Dimensions.set({
-    window: { width, height, scale, fontScale: 1 },
-    screen: { width, height, scale, fontScale: 1 },
-  });
-}
-
-if(Platform.OS === 'web' && typeof window !== 'undefined'){
-  syncMobileWebDimensions();
-}
-
 export default function RootLayout(){
-  useEffect(()=>{
-    if(Platform.OS !== 'web' || typeof window === 'undefined') return;
-    syncMobileWebDimensions();
-    window.addEventListener('resize', syncMobileWebDimensions);
-    return ()=>window.removeEventListener('resize', syncMobileWebDimensions);
-  },[]);
-
   const navigation = <>
     <StatusBar style="light" translucent/>
     <Stack screenOptions={{
@@ -79,6 +53,7 @@ const styles = StyleSheet.create({
     maxWidth:WEB_APP_WIDTH,
     height:'100%',
     alignSelf:'center',
+    backgroundColor:GLASS.tealNight,
     overflow:'hidden',
   },
 });
