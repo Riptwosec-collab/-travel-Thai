@@ -15,7 +15,8 @@ export function GlassScreen({children,image}:{children:React.ReactNode;image:str
     return()=>loop.stop();
   },[zoom]);
   return <View style={styles.screen}>
-    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill,{transform:[{scale:zoom.interpolate({inputRange:[0,1],outputRange:[1.03,1.085]})}]}]}>
+    <View pointerEvents="none" style={styles.base}/>
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill,{opacity:.54,transform:[{scale:zoom.interpolate({inputRange:[0,1],outputRange:[1.03,1.075]})}]}]}>
       <Image source={image} style={StyleSheet.absoluteFill} contentFit="cover" transition={350} cachePolicy="memory-disk"/>
     </Animated.View>
     <View pointerEvents="none" style={styles.photoWash}/>
@@ -25,6 +26,7 @@ export function GlassScreen({children,image}:{children:React.ReactNode;image:str
     <View pointerEvents="none" style={styles.edgeVignette}/>
     <View pointerEvents="none" style={styles.bloomA}/>
     <View pointerEvents="none" style={styles.bloomB}/>
+    <View pointerEvents="none" style={styles.horizon}/>
     {children}
   </View>;
 }
@@ -88,7 +90,7 @@ export function GlassProgress({value,height=7}:{value:number;height?:number}){
 export function GlassPageEnter({children,delay=0,style}:{children:React.ReactNode;delay?:number;style?:any}){
   const v=useRef(new Animated.Value(0)).current;
   useEffect(()=>{Animated.timing(v,{toValue:1,duration:520,delay,easing:Easing.out(Easing.cubic),useNativeDriver:true}).start()},[v,delay]);
-  return <Animated.View style={[style,{opacity:v,transform:[{translateY:v.interpolate({inputRange:[0,1],outputRange:[14,0]})}]}]}>{children}</Animated.View>;
+  return <Animated.View style={[style,{opacity:v,transform:[{translateY:v.interpolate({inputRange:[0,1],outputRange:[16,0]})},{scale:v.interpolate({inputRange:[0,1],outputRange:[.985,1]})}]}]}>{children}</Animated.View>;
 }
 
 export function GlassHeader({eyebrow,title,subtitle,right}:{eyebrow?:string;title:string;subtitle?:string;right?:React.ReactNode}){
@@ -107,14 +109,16 @@ const readableShadow = Platform.OS==='web'
   : ({textShadowColor:'rgba(0,24,33,.40)',textShadowOffset:{width:0,height:1},textShadowRadius:5} as any);
 
 const styles=StyleSheet.create({
-  screen:{flex:1,backgroundColor:GLASS.tealDeep,overflow:'hidden'},
-  photoWash:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(0,82,104,.14)'},
+  screen:{flex:1,backgroundColor:GLASS.tealNight,overflow:'hidden'},
+  base:{...StyleSheet.absoluteFillObject,backgroundColor:GLASS.tealNight},
+  photoWash:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(4,89,119,.18)'},
   topTint:{...StyleSheet.absoluteFillObject,backgroundColor:GLASS.overlayTop},
   midTint:{position:'absolute',left:0,right:0,top:'28%',bottom:'24%',backgroundColor:GLASS.overlayMid},
   bottomTint:{position:'absolute',left:0,right:0,bottom:0,height:'52%',backgroundColor:GLASS.overlayBottom},
   edgeVignette:{...StyleSheet.absoluteFillObject,backgroundColor:GLASS.overlayVignette},
-  bloomA:{position:'absolute',width:360,height:360,borderRadius:180,top:-120,right:-90,backgroundColor:'rgba(115,240,248,.12)'},
-  bloomB:{position:'absolute',width:300,height:300,borderRadius:150,bottom:30,left:-110,backgroundColor:'rgba(244,214,155,.09)'},
+  bloomA:{position:'absolute',width:390,height:390,borderRadius:195,top:-142,right:-112,backgroundColor:'rgba(130,244,251,.15)'},
+  bloomB:{position:'absolute',width:330,height:330,borderRadius:165,bottom:20,left:-135,backgroundColor:'rgba(244,214,155,.11)'},
+  horizon:{position:'absolute',left:-80,right:-80,bottom:-110,height:270,borderRadius:240,backgroundColor:'rgba(3,126,151,.20)',borderTopWidth:1,borderTopColor:'rgba(186,250,255,.12)'},
   card:{borderRadius:GLASS_RADIUS.lg,overflow:'hidden'},
   reflection:{position:'absolute',left:18,right:18,top:0,height:1,backgroundColor:GLASS.highlight,zIndex:2},
   cardShade:{position:'absolute',left:0,right:0,bottom:0,height:'44%',backgroundColor:'rgba(1,30,40,.10)'},
