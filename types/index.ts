@@ -89,6 +89,14 @@ export interface TripBudgetTier {
   text?: string;
 }
 
+export interface TripActualExpense {
+  id: string;
+  category: 'เดินทาง' | 'ที่พัก' | 'อาหาร' | 'กิจกรรม' | 'อื่น ๆ';
+  amount: number;
+  note?: string;
+  createdAt: string;
+}
+
 export interface Trip {
   id: string;
   title: string;
@@ -118,6 +126,8 @@ export interface Trip {
   budgetSummaryLines?: string[];
   budgetTiers?: TripBudgetTier[];
   packingList?: string[];
+  checklistDone?: string[];
+  actualExpenses?: TripActualExpense[];
   importantNotes?: string[];
   sourceText?: string;
   importMode?: 'manual' | 'autofill' | 'text-import';
