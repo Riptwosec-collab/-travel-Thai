@@ -10,168 +10,69 @@ import type { Trip, TripBudgetBreakdown, TripDay, TripScheduleItem } from '@/typ
 
 const uid=(prefix='trip')=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
 const today=()=>new Date().toISOString().slice(0,10);
-const addDays=(date:string,count:number)=>{
-  const d=new Date(`${date}T12:00:00`);
-  if(Number.isNaN(d.getTime()))return date;
-  d.setDate(d.getDate()+Math.max(0,count-1));
-  return d.toISOString().slice(0,10);
-};
+const addDays=(date:string,count:number)=>{const d=new Date(`${date}T12:00:00`);if(Number.isNaN(d.getTime()))return date;d.setDate(d.getDate()+Math.max(0,count-1));return d.toISOString().slice(0,10)};
 const asText=(v:unknown)=>typeof v==='string'?v:'';
 const asList=(v:unknown)=>Array.isArray(v)?v.filter(x=>typeof x==='string') as string[]:[];
 const finite=(v:unknown)=>{const n=Number(v);return Number.isFinite(n)&&n>0?n:0};
-const middle=(min?:number,max?:number)=>{
-  const a=finite(min),b=finite(max)||a;
-  return a||b?Math.round((a+b)/2):0;
-};
+const middle=(min?:number,max?:number)=>{const a=finite(min),b=finite(max)||a;return a||b?Math.round((a+b)/2):0};
 
-const budgetBreakdownFromSummary=(lines:string[]):TripBudgetBreakdown=>{
-  const out:TripBudgetBreakdown={};
-  lines.forEach(line=>{
-    const range=parseMoneyRange(line);
-    const value=middle(range?.min,range?.max);
-    if(!value)return;
-    let key:keyof TripBudgetBreakdown|undefined;
-    if(/น้ำมัน|4WD|ค่ารถ|เดินทาง|รถโดยสาร/i.test(line))key='transport';
-    else if(/ที่พัก|โรงแรม|ห้อง|รีสอร์ต|รีสอร์ท/i.test(line))key='accommodation';
-    else if(/อาหาร|กิน|Breakfast|Lunch|Dinner/i.test(line))key='food';
-    else if(/ค่าเที่ยว|กิจกรรม|ค่าเข้า|ค่าเรือ|บัตร/i.test(line))key='activities';
-    else if(/ของฝาก|กาแฟ|อื่น/i.test(line))key='other';
-    if(key)out[key]=(out[key]||0)+value;
-  });
-  return out;
-};
+const budgetBreakdownFromSummary=(lines:string[]):TripBudgetBreakdown=>{const out:TripBudgetBreakdown={};lines.forEach(line=>{const range=parseMoneyRange(line);const value=middle(range?.min,range?.max);if(!value)return;let key:keyof TripBudgetBreakdown|undefined;if(/น้ำมัน|4WD|ค่ารถ|เดินทาง|รถโดยสาร/i.test(line))key='transport';else if(/ที่พัก|โรงแรม|ห้อง|รีสอร์ต|รีสอร์ท/i.test(line))key='accommodation';else if(/อาหาร|กิน|Breakfast|Lunch|Dinner/i.test(line))key='food';else if(/ค่าเที่ยว|กิจกรรม|ค่าเข้า|ค่าเรือ|บัตร/i.test(line))key='activities';else if(/ของฝาก|กาแฟ|อื่น/i.test(line))key='other';if(key)out[key]=(out[key]||0)+value});return out};
+const normalizeSchedule=(item:any,di:number,si:number):TripScheduleItem=>({id:asText(item?.id)||uid(`d${di+1}s${si+1}`),time:asText(item?.time)||undefined,title:asText(item?.title).trim()||'กิจกรรม',detail:asText(item?.detail)||undefined,activities:asList(item?.activities),notes:asList(item?.notes)});
+const normalizeDay=(day:any,index:number,startDate:string):TripDay=>({day:index+1,date:asText(day?.date)||addDays(startDate,index+1),title:asText(day?.title).trim()||`DAY ${index+1}`,route:asText(day?.route)||undefined,placeIds:asList(day?.placeIds),note:asText(day?.note)||undefined,schedule:Array.isArray(day?.schedule)?day.schedule.map((x:any,i:number)=>normalizeSchedule(x,index,i)):[],accommodation:asText(day?.accommodation)||undefined,budgetRange:day?.budgetRange&&typeof day.budgetRange==='object'?day.budgetRange:undefined,budgetItems:Array.isArray(day?.budgetItems)?day.budgetItems.map((x:any)=>({...x})):[]});
 
-const normalizeSchedule=(item:any,dayIndex:number,itemIndex:number):TripScheduleItem=>({
-  id:asText(item?.id)||uid(`day-${dayIndex+1}-slot-${itemIndex+1}`),
-  time:asText(item?.time)||undefined,
-  title:asText(item?.title).trim()||'กิจกรรม',
-  detail:asText(item?.detail)||undefined,
-  activities:asList(item?.activities),
-  notes:asList(item?.notes),
-});
-
-const normalizeDay=(day:any,index:number,startDate:string):TripDay=>({
-  day:index+1,
-  date:asText(day?.date)||addDays(startDate,index+1),
-  title:asText(day?.title).trim()||`DAY ${index+1}`,
-  route:asText(day?.route)||undefined,
-  placeIds:asList(day?.placeIds),
-  note:asText(day?.note)||undefined,
-  schedule:Array.isArray(day?.schedule)?day.schedule.map((x:any,i:number)=>normalizeSchedule(x,index,i)):[],
-  accommodation:asText(day?.accommodation)||undefined,
-  budgetRange:day?.budgetRange&&typeof day.budgetRange==='object'?day.budgetRange:undefined,
-  budgetItems:Array.isArray(day?.budgetItems)?day.budgetItems.map((x:any)=>({...x})):[],
-});
-
-const fallbackParsed=(text:string):ParsedTripText=>{
-  const cleaned=text.replace(/\r/g,'').trim();
-  const allLines=cleaned.split('\n').map(x=>x.trim()).filter(Boolean);
-  const title=(allLines.find(x=>!/^[-•#*=]/.test(x))||'แผนเที่ยวใหม่').replace(/^#{1,6}\s*/,'').slice(0,120);
-  const schedule:TripScheduleItem[]=[];
-  const timeRx=/^(\d{1,2}[.:]\d{2}(?:\s*(?:-|–|—|ถึง)\s*\d{1,2}[.:]\d{2})?)\s*(?:น\.?)?\s*(.*)$/;
-  allLines.forEach((line,i)=>{
-    const m=line.replace(/^[-•]\s*/,'').match(timeRx);
-    if(m)schedule.push({id:uid(`fallback-${i}`),time:m[1].replace(/\./g,':'),title:(m[2]||'กิจกรรม').trim()||'กิจกรรม',activities:[],notes:[]});
-  });
-  if(!schedule.length)schedule.push({id:uid('fallback-slot'),title:'รายละเอียดจากข้อความ',detail:cleaned.slice(0,12000),activities:[],notes:[]});
-  return {title,travelers:1,routeStops:[],days:[{day:1,title:'DAY 1',placeIds:[],schedule,budgetItems:[],note:cleaned.length>12000?'เก็บข้อความต้นฉบับไว้ในทริปแล้ว':undefined}],attractionsSummary:[],accommodationPlan:[],budgetSummaryLines:[],budgetTiers:[],packingList:[],importantNotes:[]};
-};
-
-const safelyParse=(text:string):ParsedTripText=>{
-  try{
-    const result=parseDetailedTripText(text);
-    if(result&&Array.isArray(result.days)&&result.days.length)return result;
-  }catch(error){console.warn('Trip parser fallback',error);}
-  return fallbackParsed(text);
-};
+const fallbackParsed=(text:string):ParsedTripText=>{const cleaned=text.replace(/\r/g,'').trim();const lines=cleaned.split('\n').map(x=>x.trim()).filter(Boolean);const title=(lines.find(x=>!/^[-•#*=]/.test(x))||'แผนเที่ยวใหม่').replace(/^#{1,6}\s*/,'').slice(0,120);const schedule:TripScheduleItem[]=[];const rx=/^(\d{1,2}[.:]\d{2}(?:\s*(?:-|–|—|ถึง)\s*\d{1,2}[.:]\d{2})?)\s*(?:น\.?)?\s*(.*)$/;lines.forEach((line,i)=>{const m=line.replace(/^[-•]\s*/,'').match(rx);if(m)schedule.push({id:uid(`fallback-${i}`),time:m[1].replace(/\./g,':'),title:(m[2]||'กิจกรรม').trim()||'กิจกรรม',activities:[],notes:[]})});if(!schedule.length)schedule.push({id:uid('fallback-slot'),title:'รายละเอียดจากข้อความ',detail:cleaned.slice(0,12000),activities:[],notes:[]});return {title,travelers:1,routeStops:[],days:[{day:1,title:'DAY 1',placeIds:[],schedule,budgetItems:[]}],attractionsSummary:[],accommodationPlan:[],budgetSummaryLines:[],budgetTiers:[],packingList:[],importantNotes:[]}};
+const safelyParse=(text:string):ParsedTripText=>{try{const r=parseDetailedTripText(text);if(r&&Array.isArray(r.days)&&r.days.length)return r}catch(e){console.warn('Trip parser fallback',e)}return fallbackParsed(text)};
 
 const buildTrip=(parsed:ParsedTripText,source:string,startDate:string):Trip=>{
-  const rawDays=Array.isArray(parsed.days)&&parsed.days.length?parsed.days:fallbackParsed(source).days;
-  const days=rawDays.map((day,index)=>normalizeDay(day,index,startDate));
-  const lower=source.toLowerCase();
-  const provinceIds=Array.from(new Set(PROVINCES.filter(p=>lower.includes(p.nameTh.toLowerCase())||lower.includes(p.nameEn.toLowerCase())).map(p=>p.id)));
-  days.forEach(day=>{
-    const hay=[day.title,day.route,day.note,...(day.schedule||[]).flatMap(s=>[s.title,s.detail,...asList(s.activities),...asList(s.notes)])].filter(Boolean).join(' ');
-    day.placeIds=PLACES.filter(p=>hay.includes(p.name)).map(p=>p.id);
-  });
-  const min=finite(parsed.overviewBudgetRange?.min);
-  const max=finite(parsed.overviewBudgetRange?.max)||min;
-  const budget=min||max?Math.round((min+max)/2):0;
-  const routeStops=asList(parsed.routeStops);
-  const origin=routeStops[0]||undefined;
-  const destinationStops=routeStops.slice(1).filter((stop,index,arr)=>!(index===arr.length-1&&origin&&stop===origin));
-  const destinationSummary=destinationStops.join(' → ')||undefined;
-  const accommodationPlan=Array.isArray(parsed.accommodationPlan)?parsed.accommodationPlan.filter(Boolean).map((x:any,i:number)=>({night:finite(x?.night)||i+1,location:asText(x?.location)})).filter(x=>x.location):[];
-  const budgetSummaryLines=asList(parsed.budgetSummaryLines);
-  const budgetBreakdown=budgetBreakdownFromSummary(budgetSummaryLines);
-  return {
-    id:uid(),title:asText(parsed.title).trim()||'แผนเที่ยวใหม่',startDate,endDate:addDays(startDate,Math.max(1,days.length)),budget,provinceIds,days,
-    note:asText(parsed.note)||undefined,travelers:finite(parsed.travelers)||1,transport:asText(parsed.transport)||undefined,origin,destinationSummary,
-    accommodation:accommodationPlan.map(x=>`คืน ${x.night}: ${x.location}`).join(' · ')||undefined,status:'วางแผน',autoFilled:false,budgetBreakdown,
-    routeText:asText(parsed.routeText)||undefined,routeStops,overviewBudgetRange:parsed.overviewBudgetRange,attractionsSummary:asList(parsed.attractionsSummary),accommodationPlan,budgetSummaryLines,budgetTiers:Array.isArray(parsed.budgetTiers)?parsed.budgetTiers.map((x:any)=>({...x})):[],packingList:asList(parsed.packingList),importantNotes:asList(parsed.importantNotes),sourceText:source.slice(0,120000),importMode:'text-import',
-  };
+  const rawDays=Array.isArray(parsed.days)&&parsed.days.length?parsed.days:fallbackParsed(source).days;const days=rawDays.map((d,i)=>normalizeDay(d,i,startDate));const lower=source.toLowerCase();const provinceIds=Array.from(new Set(PROVINCES.filter(p=>lower.includes(p.nameTh.toLowerCase())||lower.includes(p.nameEn.toLowerCase())).map(p=>p.id)));
+  days.forEach(day=>{const hay=[day.title,day.route,day.note,...(day.schedule||[]).flatMap(s=>[s.title,s.detail,...asList(s.activities),...asList(s.notes)])].filter(Boolean).join(' ');day.placeIds=PLACES.filter(p=>hay.includes(p.name)).map(p=>p.id)});
+  const min=finite(parsed.overviewBudgetRange?.min),max=finite(parsed.overviewBudgetRange?.max)||min,budget=min||max?Math.round((min+max)/2):0;const routeStops=asList(parsed.routeStops);const origin=routeStops[0]||undefined;const destinationStops=routeStops.slice(1).filter((stop,index,arr)=>!(index===arr.length-1&&origin&&stop===origin));const accommodationPlan=Array.isArray(parsed.accommodationPlan)?parsed.accommodationPlan.filter(Boolean).map((x:any,i:number)=>({night:finite(x?.night)||i+1,location:asText(x?.location)})).filter(x=>x.location):[];const budgetSummaryLines=asList(parsed.budgetSummaryLines);
+  return {id:uid(),title:asText(parsed.title).trim()||'แผนเที่ยวใหม่',startDate,endDate:addDays(startDate,Math.max(1,days.length)),budget,provinceIds,days,note:asText(parsed.note)||undefined,travelers:finite(parsed.travelers)||1,transport:asText(parsed.transport)||undefined,origin,destinationSummary:destinationStops.join(' → ')||undefined,accommodation:accommodationPlan.map(x=>`คืน ${x.night}: ${x.location}`).join(' · ')||undefined,status:'วางแผน',autoFilled:false,budgetBreakdown:budgetBreakdownFromSummary(budgetSummaryLines),routeText:asText(parsed.routeText)||undefined,routeStops,overviewBudgetRange:parsed.overviewBudgetRange,attractionsSummary:asList(parsed.attractionsSummary),accommodationPlan,budgetSummaryLines,budgetTiers:Array.isArray(parsed.budgetTiers)?parsed.budgetTiers.map((x:any)=>({...x})):[],packingList:asList(parsed.packingList),checklistDone:[],actualExpenses:[],importantNotes:asList(parsed.importantNotes),sourceText:source.slice(0,120000),importMode:'text-import'};
 };
 
-type Props={onViewPlans?:()=>void};
-
-export default function TripTextImport({onViewPlans}:Props){
-  const createTrip=useTravelStore(s=>s.createTrip);
-  const [source,setSource]=useState('');
-  const [startDate,setStartDate]=useState(today());
-  const [working,setWorking]=useState(false);
-  const [created,setCreated]=useState<Trip|null>(null);
-  const [error,setError]=useState('');
-  const chars=source.length;
-  const tooLong=chars>120000;
-  const canCreate=source.trim().length>0&&!working&&!tooLong;
-  const preview=useMemo(()=>source.trim()?`ข้อความ ${chars.toLocaleString()} ตัวอักษร`:'วางข้อความแผนเที่ยวด้านล่าง',[chars,source]);
-
-  const createFromText=()=>{
-    const text=source.trim();
-    if(!text){setError('กรุณาวางข้อความแผนเที่ยวก่อน');return;}
-    if(tooLong){setError('ข้อความยาวเกิน 120,000 ตัวอักษร กรุณาแบ่งเป็นหลายทริป');return;}
-    if(working)return;
-    setWorking(true);setError('');setCreated(null);
-    try{
-      const trip=buildTrip(safelyParse(text),text,startDate.trim()||today());
-      createTrip(trip);setCreated(trip);setSource('');
-    }catch(e:any){console.error('Create trip from text failed',e);setError(e?.message||'สร้างแผนไม่สำเร็จ กรุณาลองใหม่');}
-    finally{setWorking(false);}
-  };
-
-  return <View style={s.root}>
-    <ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator={false}>
-      <View style={s.hero}>
-        <View style={s.heroIcon}><Ionicons name="git-compare-outline" size={22} color={COLORS.primary}/></View>
-        <View style={s.flex}><Text style={s.kicker}>TEXT → ITINERARY</Text><Text style={s.title}>แยกแผนอัตโนมัติ</Text></View>
-        <Text style={s.sub}>รองรับแผนละเอียดหลาย DAY พร้อมเวลา ระยะทาง เวลาขับ เวลาเปิด ค่าเข้า ค่าอาหาร งบ ที่พัก จุดเด่น ข้อควรระวัง และงบรวมท้ายทริป จากนั้นแก้เองได้ทุกช่อง</Text>
-      </View>
-
-      <View style={s.notice}><Ionicons name="shield-checkmark-outline" size={18} color={COLORS.primary}/><Text style={s.noticeText}>รองรับข้อความแบบ “ทริป 3 วัน 2 คืน + เส้นทาง + DAY 1/2/3 + ตารางเวลา + งบรวม” และจะแยกงบรวมออกจาก DAY สุดท้ายอัตโนมัติ</Text></View>
-
-      <View style={s.card}>
-        <Text style={s.label}>วันเริ่มเดินทาง</Text>
-        <TextInput value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" placeholderTextColor={COLORS.textMuted} style={s.input}/>
-        <View style={s.labelRow}><Text style={s.label}>ข้อความแผนเที่ยว</Text><Text style={[s.counter,tooLong&&s.counterDanger]}>{chars.toLocaleString()} / 120,000</Text></View>
-        <TextInput value={source} onChangeText={v=>{setSource(v);if(error)setError('');if(created)setCreated(null)}} multiline textAlignVertical="top" placeholder={'ทริปราชบุรี 3 วัน 2 คืน\nเส้นทาง: กรุงเทพฯ → ดำเนินสะดวก → สวนผึ้ง → กรุงเทพฯ\n\nDAY 1 : ตลาดน้ำ + เมืองเก่า\n07:15–08:45 ตลาดน้ำดำเนินสะดวก\nเปิด: 07:00–13:00\nค่าเข้า: ฟรี\nงบอาหาร: 100–150 บาท/คน\n\nงบรวม\nที่พัก 2 คืน ~2,400–5,000 บาท\nรวม 2 คนประมาณ 8,800–15,000 บาท'} placeholderTextColor={COLORS.textMuted} style={s.textarea}/>
-        <Text style={s.helper}>{preview}</Text>
-        {!!error&&<View style={s.errorBox}><Ionicons name="alert-circle" size={18} color={COLORS.danger}/><Text style={s.errorText}>{error}</Text></View>}
-        {!!created&&<View style={s.successBox}><Ionicons name="checkmark-circle" size={21} color={COLORS.visited}/><View style={s.flex}><Text style={s.successTitle}>สร้างแผนสำเร็จ</Text><Text style={s.successText}>{created.title} · {created.days.length} วัน · {created.days.reduce((sum,d)=>sum+(d.schedule?.length||0),0)} ช่วงเวลา · งบประมาณ {(created.budget||0).toLocaleString()} บาท</Text></View></View>}
-        <Pressable disabled={!canCreate} style={[s.createButton,!canCreate&&s.disabled]} onPress={createFromText}><Ionicons name={working?'hourglass-outline':'sparkles'} size={18} color="#fff"/><Text style={s.createText}>{working?'กำลังสร้างแผน...':'แยกและสร้างแผนทันที'}</Text></Pressable>
-        {!!created&&<Pressable style={s.viewButton} onPress={onViewPlans}><Ionicons name="create-outline" size={18} color={COLORS.primary}/><Text style={s.viewText}>ไปดูและแก้ไขแผน</Text></Pressable>}
-      </View>
-
-      <View style={s.tip}><Ionicons name="information-circle-outline" size={18} color={COLORS.primary}/><Text style={s.tipText}>ข้อมูลที่แยกจะถูกใส่ใน DAY, ช่วงเวลา, รายละเอียด, หมายเหตุ, งบรายวัน, งบรวม, เส้นทาง, ที่พัก, สรุปสถานที่ และ Checklist/คำเตือน แล้วกด “แก้ไขทั้งหมด” แก้ต่อได้</Text></View>
-    </ScrollView>
-  </View>;
+function timeRange(value?:string){const m=asText(value).replace(/\./g,':').match(/(\d{1,2}):(\d{2})(?:\s*(?:-|–|—|ถึง)\s*(\d{1,2}):(\d{2}))?/);if(!m)return null;return{start:Number(m[1])*60+Number(m[2]),end:m[3]?Number(m[3])*60+Number(m[4]):Number(m[1])*60+Number(m[2])+45}}
+function validate(parsed:ParsedTripText,source:string){
+  const days=Array.isArray(parsed.days)?parsed.days:[];const schedule=days.flatMap((d:any)=>Array.isArray(d.schedule)?d.schedule:[]);const titles=Array.from(new Set(schedule.map((x:any)=>asText(x.title).trim()).filter(Boolean)));const issues:{level:'warn'|'info';text:string}[]=[];
+  days.forEach((d:any,di)=>{const slots=Array.isArray(d.schedule)?d.schedule:[];if(!slots.length)issues.push({level:'warn',text:`DAY ${di+1} ยังไม่มีช่วงเวลา`});if(di<days.length-1&&!asText(d.accommodation)&&!(parsed.accommodationPlan||[]).some((x:any)=>Number(x.night)===di+1))issues.push({level:'info',text:`DAY ${di+1} ยังไม่พบที่พักคืนนี้`});slots.forEach((x:any,si)=>{if(!asText(x.time))issues.push({level:'info',text:`DAY ${di+1} รายการ ${si+1} ไม่มีเวลา`});if(!asText(x.title)||/^(กิจกรรม|รายละเอียดจากข้อความ)$/i.test(asText(x.title)))issues.push({level:'warn',text:`DAY ${di+1} รายการ ${si+1} ชื่อยังไม่ชัดเจน`})});for(let i=0;i<slots.length-1;i++){const a=timeRange(slots[i].time),b=timeRange(slots[i+1].time);if(a&&b&&b.start<a.end)issues.push({level:'warn',text:`DAY ${di+1} เวลาอาจชนกัน: ${slots[i].time} กับ ${slots[i+1].time}`})}});
+  if(/งบรวม|รวม\s*\d+\s*คน/.test(source)&&!(parsed.budgetSummaryLines||[]).length&&!parsed.overviewBudgetRange)issues.push({level:'warn',text:'พบข้อความงบรวม แต่ยังสรุปช่วงงบไม่ได้'});
+  if(/เส้นทาง\s*[:：]/.test(source)&&!(parsed.routeStops||[]).length)issues.push({level:'info',text:'พบเส้นทางหลัก แต่ยังแยก Route Stops ไม่ครบ'});
+  const budgetItems=days.reduce((n:number,d:any)=>n+(Array.isArray(d.budgetItems)?d.budgetItems.length:0),0)+(parsed.budgetSummaryLines||[]).length;
+  return {days:days.length,schedule:schedule.length,places:titles.length,nights:(parsed.accommodationPlan||[]).length,routeStops:(parsed.routeStops||[]).length,budgetItems,issues:issues.slice(0,12),budget:parsed.overviewBudgetRange};
 }
 
+type Props={onViewPlans?:()=>void};
+export default function TripTextImport({onViewPlans}:Props){
+  const createTrip=useTravelStore(s=>s.createTrip);const [source,setSource]=useState('');const [startDate,setStartDate]=useState(today());const [working,setWorking]=useState(false);const [created,setCreated]=useState<Trip|null>(null);const [error,setError]=useState('');
+  const chars=source.length,tooLong=chars>120000,canCreate=source.trim().length>0&&!working&&!tooLong;
+  const parsed=useMemo(()=>source.trim()?safelyParse(source.trim()):null,[source]);const report=useMemo(()=>parsed?validate(parsed,source):null,[parsed,source]);
+  const createFromText=()=>{const text=source.trim();if(!text){setError('กรุณาวางข้อความแผนเที่ยวก่อน');return}if(tooLong){setError('ข้อความยาวเกิน 120,000 ตัวอักษร กรุณาแบ่งเป็นหลายทริป');return}if(working)return;setWorking(true);setError('');setCreated(null);try{const trip=buildTrip(parsed||safelyParse(text),text,startDate.trim()||today());createTrip(trip);setCreated(trip);setSource('')}catch(e:any){setError(e?.message||'สร้างแผนไม่สำเร็จ กรุณาลองใหม่')}finally{setWorking(false)}};
+
+  return <View style={s.root}><ScrollView style={s.scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator={false}>
+    <View style={s.hero}><View style={s.heroIcon}><Ionicons name="git-compare-outline" size={22} color={COLORS.primary}/></View><View style={s.flex}><Text style={s.kicker}>SMART IMPORT VALIDATOR</Text><Text style={s.title}>แยกแผนอัตโนมัติ</Text><Text style={s.sub}>วางข้อความ → ตรวจสิ่งที่ระบบจับได้ → แจ้งจุดเสี่ยง → สร้างแผน แล้วกลับไปแก้ทุกช่องได้</Text></View></View>
+    <View style={s.card}>
+      <Text style={s.label}>วันเริ่มเดินทาง</Text><TextInput value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" placeholderTextColor={COLORS.textMuted} style={s.input}/>
+      <View style={s.labelRow}><Text style={s.label}>ข้อความแผนเที่ยว</Text><Text style={[s.counter,tooLong&&s.counterDanger]}>{chars.toLocaleString()} / 120,000</Text></View>
+      <TextInput value={source} onChangeText={v=>{setSource(v);setError('');setCreated(null)}} multiline textAlignVertical="top" placeholder={'ทริปราชบุรี 3 วัน 2 คืน\nเส้นทาง: กรุงเทพฯ → ดำเนินสะดวก → สวนผึ้ง → กรุงเทพฯ\n\nDAY 1 : ตลาดน้ำ + เมืองเก่า\n07:15–08:45 ตลาดน้ำดำเนินสะดวก\nเปิด: 07:00–13:00\nค่าเข้า: ฟรี\n\nงบรวม\nรวม 2 คนประมาณ 8,800–15,000 บาท'} placeholderTextColor={COLORS.textMuted} style={s.textarea}/>
+
+      {report&&<View style={s.validator}>
+        <View style={s.validatorHead}><View><Text style={s.validatorKicker}>ตรวจพบอัตโนมัติ</Text><Text style={s.validatorTitle}>{asText(parsed?.title)||'แผนเที่ยว'}</Text></View><View style={[s.quality,report.issues.some(x=>x.level==='warn')&&s.qualityWarn]}><Text style={s.qualityText}>{report.issues.some(x=>x.level==='warn')?'ควรตรวจ':'พร้อมสร้าง'}</Text></View></View>
+        <View style={s.detectGrid}><Detected value={report.days} label="DAY"/><Detected value={report.schedule} label="ช่วงเวลา"/><Detected value={report.places} label="สถานที่"/><Detected value={report.routeStops} label="Route"/><Detected value={report.nights} label="คืนที่พัก"/><Detected value={report.budgetItems} label="รายการงบ"/></View>
+        {report.budget&&(report.budget.min||report.budget.max)&&<View style={s.budgetDetect}><Ionicons name="wallet-outline" size={16} color={COLORS.primary}/><Text style={s.budgetDetectText}>งบที่ตรวจพบ {(report.budget.min||0).toLocaleString()}–{(report.budget.max||report.budget.min||0).toLocaleString()} บาท</Text></View>}
+        {!!report.issues.length&&<View style={s.issueList}><Text style={s.issueHead}>จุดที่ควรตรวจสอบก่อนสร้าง</Text>{report.issues.map((x,i)=><View key={`${x.text}-${i}`} style={s.issueRow}><Ionicons name={x.level==='warn'?'warning-outline':'information-circle-outline'} size={15} color={x.level==='warn'?COLORS.danger:COLORS.primary}/><Text style={s.issueText}>{x.text}</Text></View>)}</View>}
+        {!report.issues.length&&<View style={s.cleanReport}><Ionicons name="shield-checkmark-outline" size={17} color="#2FAE68"/><Text style={s.cleanText}>โครงสร้างหลักครบ ไม่พบเวลา/หัวข้อที่ผิดปกติชัดเจน</Text></View>}
+      </View>}
+
+      {!!error&&<View style={s.errorBox}><Ionicons name="alert-circle" size={18} color={COLORS.danger}/><Text style={s.errorText}>{error}</Text></View>}
+      {!!created&&<View style={s.successBox}><Ionicons name="checkmark-circle" size={21} color="#2FAE68"/><View style={s.flex}><Text style={s.successTitle}>สร้างแผนสำเร็จ</Text><Text style={s.successText}>{created.title} · {created.days.length} วัน · {created.days.reduce((sum,d)=>sum+(d.schedule?.length||0),0)} ช่วงเวลา</Text></View></View>}
+      <View style={s.actions}><Pressable style={s.reviewButton} onPress={()=>setError('แก้ข้อความในช่องด้านบนได้ทันที แล้วตัวตรวจสอบจะคำนวณใหม่อัตโนมัติ')}><Ionicons name="create-outline" size={17} color={COLORS.primary}/><Text style={s.reviewText}>แก้ก่อนสร้าง</Text></Pressable><Pressable disabled={!canCreate} style={[s.createButton,!canCreate&&s.disabled]} onPress={createFromText}><Ionicons name={working?'hourglass-outline':'sparkles'} size={18} color="#fff"/><Text style={s.createText}>{working?'กำลังสร้าง...':'สร้างแผนทันที'}</Text></Pressable></View>
+      {!!created&&<Pressable style={s.viewButton} onPress={onViewPlans}><Ionicons name="arrow-forward-circle-outline" size={18} color={COLORS.primary}/><Text style={s.viewText}>ไปดูและแก้ไขแผน</Text></Pressable>}
+    </View>
+  </ScrollView></View>
+}
+function Detected({value,label}:{value:number;label:string}){return <View style={s.detect}><Text style={s.detectValue}>{value}</Text><Text style={s.detectLabel}>{label}</Text></View>}
+
 const s=StyleSheet.create({
-  root:{flex:1,minHeight:0},scroll:{flex:1},flex:{flex:1,minWidth:0},content:{paddingHorizontal:14,paddingTop:10,paddingBottom:130,gap:11,width:'100%'},
-  hero:{padding:15,borderRadius:20,backgroundColor:'rgba(255,255,255,.84)',borderWidth:1,borderColor:'rgba(255,255,255,.72)',gap:8,...SHADOW.card},heroIcon:{width:44,height:44,borderRadius:14,backgroundColor:'rgba(232,246,246,.96)',alignItems:'center',justifyContent:'center'},kicker:{fontSize:9.5,fontWeight:'900',letterSpacing:1.1,color:COLORS.primary},title:{fontSize:23,lineHeight:28,fontWeight:'900',color:COLORS.text,marginTop:1},sub:{fontSize:12,lineHeight:18,color:COLORS.textMuted},
-  notice:{padding:11,borderRadius:15,backgroundColor:'rgba(232,246,246,.90)',borderWidth:1,borderColor:'rgba(255,255,255,.68)',flexDirection:'row',alignItems:'flex-start',gap:7},noticeText:{flex:1,fontSize:10.5,fontWeight:'700',lineHeight:16,color:COLORS.textMuted},
-  card:{padding:13,borderRadius:20,backgroundColor:'rgba(255,255,255,.86)',borderWidth:1,borderColor:'rgba(255,255,255,.72)',gap:9,...SHADOW.card},labelRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},label:{fontSize:12,fontWeight:'900',color:COLORS.text},counter:{fontSize:9,fontWeight:'800',color:COLORS.textMuted},counterDanger:{color:COLORS.danger},input:{minHeight:48,borderRadius:14,borderWidth:1,borderColor:'rgba(7,61,75,.12)',backgroundColor:'rgba(255,255,255,.94)',paddingHorizontal:12,color:COLORS.text,fontSize:14,fontWeight:'700'},textarea:{minHeight:250,maxHeight:430,borderRadius:14,borderWidth:1,borderColor:'rgba(7,61,75,.12)',backgroundColor:'rgba(255,255,255,.95)',padding:12,color:COLORS.text,fontSize:13,lineHeight:20},helper:{fontSize:9.5,color:COLORS.textMuted},
-  errorBox:{padding:10,borderRadius:13,backgroundColor:'rgba(224,92,102,.10)',borderWidth:1,borderColor:'rgba(224,92,102,.25)',flexDirection:'row',gap:7,alignItems:'flex-start'},errorText:{flex:1,fontSize:11,fontWeight:'800',lineHeight:17,color:COLORS.text},successBox:{padding:11,borderRadius:14,backgroundColor:'rgba(47,174,104,.10)',borderWidth:1,borderColor:'rgba(47,174,104,.24)',flexDirection:'row',gap:8,alignItems:'flex-start'},successTitle:{fontSize:12,fontWeight:'900',color:COLORS.text},successText:{fontSize:10.5,fontWeight:'700',lineHeight:16,color:COLORS.textMuted,marginTop:2},
-  createButton:{minHeight:50,borderRadius:14,backgroundColor:COLORS.dark,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7},disabled:{opacity:.45},createText:{color:'#fff',fontSize:13,fontWeight:'900'},viewButton:{minHeight:48,borderRadius:14,backgroundColor:'rgba(232,246,246,.96)',borderWidth:1,borderColor:'rgba(7,61,75,.10)',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7},viewText:{fontSize:12,fontWeight:'900',color:COLORS.primary},
-  tip:{padding:11,borderRadius:15,backgroundColor:'rgba(255,255,255,.76)',borderWidth:1,borderColor:'rgba(255,255,255,.64)',flexDirection:'row',gap:7,alignItems:'flex-start'},tipText:{flex:1,fontSize:10.5,lineHeight:17,fontWeight:'700',color:COLORS.textMuted},
+  root:{flex:1},scroll:{flex:1},content:{paddingHorizontal:14,paddingTop:10,paddingBottom:130,gap:12,maxWidth:430,width:'100%',alignSelf:'center'},flex:{flex:1,minWidth:0},hero:{padding:14,borderRadius:18,backgroundColor:'rgba(255,255,255,.88)',borderWidth:1,borderColor:'rgba(255,255,255,.72)',flexDirection:'row',alignItems:'flex-start',gap:10,...SHADOW.card},heroIcon:{width:44,height:44,borderRadius:13,backgroundColor:'rgba(232,246,246,.96)',alignItems:'center',justifyContent:'center'},kicker:{fontSize:8.5,fontWeight:'900',letterSpacing:1,color:COLORS.primary},title:{fontSize:24,lineHeight:29,fontWeight:'900',color:COLORS.text,marginTop:2},sub:{fontSize:10,lineHeight:15,color:COLORS.textMuted,marginTop:3},card:{padding:13,borderRadius:18,backgroundColor:'rgba(255,255,255,.9)',borderWidth:1,borderColor:'rgba(255,255,255,.74)',gap:9,...SHADOW.card},label:{fontSize:10,fontWeight:'900',color:COLORS.text},labelRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between'},counter:{fontSize:8.5,fontWeight:'800',color:COLORS.textMuted},counterDanger:{color:COLORS.danger},input:{minHeight:44,borderRadius:11,backgroundColor:'#fff',borderWidth:1,borderColor:'rgba(7,61,75,.10)',paddingHorizontal:11,fontSize:11,color:COLORS.text},textarea:{minHeight:220,borderRadius:12,backgroundColor:'#fff',borderWidth:1,borderColor:'rgba(7,61,75,.10)',padding:11,fontSize:10.5,lineHeight:16,color:COLORS.text},
+  validator:{borderRadius:14,padding:11,gap:9,backgroundColor:'rgba(236,248,248,.96)',borderWidth:1,borderColor:'rgba(7,90,110,.10)'},validatorHead:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},validatorKicker:{fontSize:8,fontWeight:'900',letterSpacing:.7,color:COLORS.primary},validatorTitle:{fontSize:12.5,fontWeight:'900',color:COLORS.text,marginTop:1},quality:{minHeight:28,paddingHorizontal:8,borderRadius:999,backgroundColor:'rgba(47,174,104,.12)',alignItems:'center',justifyContent:'center'},qualityWarn:{backgroundColor:'rgba(224,92,102,.10)'},qualityText:{fontSize:8.5,fontWeight:'900',color:COLORS.text},detectGrid:{flexDirection:'row',flexWrap:'wrap',gap:6},detect:{width:'31.5%',minHeight:54,borderRadius:10,backgroundColor:'#fff',padding:7,justifyContent:'center'},detectValue:{fontSize:14,fontWeight:'900',color:COLORS.text},detectLabel:{fontSize:8,fontWeight:'800',color:COLORS.textMuted,marginTop:1},budgetDetect:{minHeight:38,borderRadius:10,backgroundColor:'#fff',paddingHorizontal:9,flexDirection:'row',alignItems:'center',gap:6},budgetDetectText:{fontSize:9.5,fontWeight:'800',color:COLORS.text},issueList:{gap:5},issueHead:{fontSize:9.5,fontWeight:'900',color:COLORS.text},issueRow:{flexDirection:'row',alignItems:'flex-start',gap:6},issueText:{flex:1,fontSize:8.8,lineHeight:13,color:COLORS.textMuted},cleanReport:{minHeight:38,borderRadius:10,backgroundColor:'rgba(47,174,104,.08)',padding:8,flexDirection:'row',alignItems:'center',gap:6},cleanText:{flex:1,fontSize:9,lineHeight:13,fontWeight:'700',color:COLORS.text},
+  errorBox:{padding:9,borderRadius:10,backgroundColor:'rgba(224,92,102,.08)',flexDirection:'row',alignItems:'center',gap:6},errorText:{flex:1,fontSize:9.5,lineHeight:14,color:COLORS.danger},successBox:{padding:10,borderRadius:11,backgroundColor:'rgba(47,174,104,.08)',flexDirection:'row',alignItems:'center',gap:7},successTitle:{fontSize:10.5,fontWeight:'900',color:COLORS.text},successText:{fontSize:9,lineHeight:13,color:COLORS.textMuted,marginTop:1},actions:{flexDirection:'row',gap:7},reviewButton:{flex:1,minHeight:46,borderRadius:12,backgroundColor:'rgba(232,246,246,.96)',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5},reviewText:{fontSize:10,fontWeight:'900',color:COLORS.primary},createButton:{flex:1.25,minHeight:46,borderRadius:12,backgroundColor:COLORS.primary,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5},createText:{fontSize:10,fontWeight:'900',color:'#fff'},disabled:{opacity:.45},viewButton:{minHeight:44,borderRadius:12,backgroundColor:'rgba(232,246,246,.96)',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5},viewText:{fontSize:10,fontWeight:'900',color:COLORS.primary},
 });
