@@ -33,6 +33,29 @@ function patchTripPlanner() {
   else console.log('[ui-patch] TripPlannerCore already enhanced');
 }
 
+function patchTripTravelCard() {
+  const rel = 'components/trip/TripTravelCard.tsx';
+  let src = read(rel);
+  const original = src;
+
+  if (!src.includes("@/components/trip/TripBudgetScorePanel")) {
+    src = src.replace(
+      "import { PROVINCES } from '@/data/catalog';",
+      "import { PROVINCES } from '@/data/catalog';\nimport TripBudgetScorePanel from '@/components/trip/TripBudgetScorePanel';"
+    );
+  }
+
+  if (!src.includes('<TripBudgetScorePanel trip={trip} onChange={onChange}/>')) {
+    src = src.replace(
+      '    <View style={s.bottomActions}>',
+      '    <TripBudgetScorePanel trip={trip} onChange={onChange}/>\n\n    <View style={s.bottomActions}>'
+    );
+  }
+
+  if (src !== original) write(rel, src);
+  else console.log('[ui-patch] TripTravelCard already enhanced');
+}
+
 function patchGlassBackground() {
   const rel = 'components/glass/index.tsx';
   let src = read(rel);
@@ -49,4 +72,5 @@ function patchGlassBackground() {
 }
 
 patchTripPlanner();
+patchTripTravelCard();
 patchGlassBackground();
