@@ -38,7 +38,7 @@ export default function TripsGlass(){
     <View style={s.root}>
       <View style={s.modeBar}>
         <ModeButton active={mode==='manual'} icon="create-outline" title="ทำเองทั้งหมด" sub="สร้างและแก้ได้ทุกจุด" onPress={()=>switchMode('manual')}/>
-        <ModeButton active={mode==='import'} icon="git-compare-outline" title="แยกอัตโนมัติ" sub="ข้อความ → DAY / เวลา / งบ" onPress={()=>switchMode('import')}/>
+        <ModeButton active={mode==='import'} icon="git-compare-outline" title="แยกแผนอัตโนมัติ" sub="ข้อความ → DAY / เวลา" onPress={()=>switchMode('import')}/>
       </View>
       <View style={s.body}>
         <TripModeBoundary key={boundaryKey} onReset={reset}>
@@ -52,7 +52,7 @@ export default function TripsGlass(){
 function ModeButton({active,icon,title,sub,onPress}:{active:boolean;icon:any;title:string;sub:string;onPress:()=>void}){
   return <Pressable onPress={onPress} style={[s.modeButton,active&&s.modeButtonActive]}>
     <View style={[s.modeIcon,active&&s.modeIconActive]}><Ionicons name={icon} size={18} color={active?'#fff':COLORS.primary}/></View>
-    <View style={s.modeCopy}><Text numberOfLines={1} style={[s.modeTitle,active&&s.modeTitleActive]}>{title}</Text><Text numberOfLines={2} style={[s.modeSub,active&&s.modeSubActive]}>{sub}</Text></View>
+    <View style={s.modeCopy}><Text numberOfLines={2} style={[s.modeTitle,active&&s.modeTitleActive]}>{title}</Text><Text numberOfLines={1} style={[s.modeSub,active&&s.modeSubActive]}>{sub}</Text></View>
   </Pressable>;
 }
 
