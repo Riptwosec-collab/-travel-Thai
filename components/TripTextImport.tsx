@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SHADOW } from '@/constants/theme';
 import { PLACES, PROVINCES } from '@/data/catalog';
 import { useTravelStore } from '@/store/useTravelStore';
-import { parseDetailedTripText } from '@/utils/tripTextParser';
+import { parseDetailedTripText, parseMoneyRange } from '@/utils/tripTextParser';
 import type { ParsedTripText } from '@/utils/tripTextParser';
-import type { Trip, TripDay, TripScheduleItem } from '@/types';
+import type { Trip, TripBudgetBreakdown, TripDay, TripScheduleItem } from '@/types';
 
 const uid=(prefix='trip')=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
 const today=()=>new Date().toISOString().slice(0,10);
@@ -19,6 +19,27 @@ const addDays=(date:string,count:number)=>{
 const asText=(v:unknown)=>typeof v==='string'?v:'';
 const asList=(v:unknown)=>Array.isArray(v)?v.filter(x=>typeof x==='string') as string[]:[];
 const finite=(v:unknown)=>{const n=Number(v);return Number.isFinite(n)&&n>0?n:0};
+const middle=(min?:number,max?:number)=>{
+  const a=finite(min),b=finite(max)||a;
+  return a||b?Math.round((a+b)/2):0;
+};
+
+const budgetBreakdownFromSummary=(lines:string[]):TripBudgetBreakdown=>{
+  const out:TripBudgetBreakdown={};
+  lines.forEach(line=>{
+    const range=parseMoneyRange(line);
+    const value=middle(range?.min,range?.max);
+    if(!value)return;
+    let key:keyof TripBudgetBreakdown|undefined;
+    if(/น้ำมัน|4WD|ค่ารถ|เดินทาง|รถโดยสาร/i.test(line))key='transport';
+    else if(/ที่พัก|โรงแรม|ห้อง|รีสอร์ต|รีสอร์ท/i.test(line))key='accommodation';
+    else if(/อาหาร|กิน|Breakfast|Lunch|Dinner/i.test(line))key='food';
+    else if(/ค่าเที่ยว|กิจกรรม|ค่าเข้า|ค่าเรือ|บัตร/i.test(line))key='activities';
+    else if(/ของฝาก|กาแฟ|อื่น/i.test(line))key='other';
+    if(key)out[key]=(out[key]||0)+value;
+  });
+  return out;
+};
 
 const normalizeSchedule=(item:any,dayIndex:number,itemIndex:number):TripScheduleItem=>({
   id:asText(item?.id)||uid(`day-${dayIndex+1}-slot-${itemIndex+1}`),
@@ -76,11 +97,18 @@ const buildTrip=(parsed:ParsedTripText,source:string,startDate:string):Trip=>{
   const min=finite(parsed.overviewBudgetRange?.min);
   const max=finite(parsed.overviewBudgetRange?.max)||min;
   const budget=min||max?Math.round((min+max)/2):0;
+  const routeStops=asList(parsed.routeStops);
+  const origin=routeStops[0]||undefined;
+  const destinationStops=routeStops.slice(1).filter((stop,index,arr)=>!(index===arr.length-1&&origin&&stop===origin));
+  const destinationSummary=destinationStops.join(' → ')||undefined;
   const accommodationPlan=Array.isArray(parsed.accommodationPlan)?parsed.accommodationPlan.filter(Boolean).map((x:any,i:number)=>({night:finite(x?.night)||i+1,location:asText(x?.location)})).filter(x=>x.location):[];
+  const budgetSummaryLines=asList(parsed.budgetSummaryLines);
+  const budgetBreakdown=budgetBreakdownFromSummary(budgetSummaryLines);
   return {
     id:uid(),title:asText(parsed.title).trim()||'แผนเที่ยวใหม่',startDate,endDate:addDays(startDate,Math.max(1,days.length)),budget,provinceIds,days,
-    note:asText(parsed.note)||undefined,travelers:finite(parsed.travelers)||1,transport:asText(parsed.transport)||undefined,accommodation:accommodationPlan.map(x=>`คืน ${x.night}: ${x.location}`).join(' · ')||undefined,status:'วางแผน',autoFilled:false,
-    routeText:asText(parsed.routeText)||undefined,routeStops:asList(parsed.routeStops),overviewBudgetRange:parsed.overviewBudgetRange,attractionsSummary:asList(parsed.attractionsSummary),accommodationPlan,budgetSummaryLines:asList(parsed.budgetSummaryLines),budgetTiers:Array.isArray(parsed.budgetTiers)?parsed.budgetTiers.map((x:any)=>({...x})):[],packingList:asList(parsed.packingList),importantNotes:asList(parsed.importantNotes),sourceText:source.slice(0,120000),importMode:'text-import',
+    note:asText(parsed.note)||undefined,travelers:finite(parsed.travelers)||1,transport:asText(parsed.transport)||undefined,origin,destinationSummary,
+    accommodation:accommodationPlan.map(x=>`คืน ${x.night}: ${x.location}`).join(' · ')||undefined,status:'วางแผน',autoFilled:false,budgetBreakdown,
+    routeText:asText(parsed.routeText)||undefined,routeStops,overviewBudgetRange:parsed.overviewBudgetRange,attractionsSummary:asList(parsed.attractionsSummary),accommodationPlan,budgetSummaryLines,budgetTiers:Array.isArray(parsed.budgetTiers)?parsed.budgetTiers.map((x:any)=>({...x})):[],packingList:asList(parsed.packingList),importantNotes:asList(parsed.importantNotes),sourceText:source.slice(0,120000),importMode:'text-import',
   };
 };
 
@@ -116,24 +144,24 @@ export default function TripTextImport({onViewPlans}:Props){
       <View style={s.hero}>
         <View style={s.heroIcon}><Ionicons name="git-compare-outline" size={22} color={COLORS.primary}/></View>
         <View style={s.flex}><Text style={s.kicker}>TEXT → ITINERARY</Text><Text style={s.title}>แยกแผนอัตโนมัติ</Text></View>
-        <Text style={s.sub}>วางข้อความแผนเที่ยว แล้วกดครั้งเดียว ระบบจะแยก DAY / เวลา / กิจกรรม / งบ / ที่พัก จากนั้นแก้ต่อเองได้ทุกช่อง</Text>
+        <Text style={s.sub}>รองรับแผนละเอียดหลาย DAY พร้อมเวลา ระยะทาง เวลาขับ เวลาเปิด ค่าเข้า ค่าอาหาร งบ ที่พัก จุดเด่น ข้อควรระวัง และงบรวมท้ายทริป จากนั้นแก้เองได้ทุกช่อง</Text>
       </View>
 
-      <View style={s.notice}><Ionicons name="shield-checkmark-outline" size={18} color={COLORS.primary}/><Text style={s.noticeText}>ถ้ารูปแบบข้อความไม่ตรง ระบบจะสร้าง DAY 1 จากข้อความเดิมแทนการค้างหรือขึ้นหน้าขาว</Text></View>
+      <View style={s.notice}><Ionicons name="shield-checkmark-outline" size={18} color={COLORS.primary}/><Text style={s.noticeText}>รองรับข้อความแบบ “ทริป 3 วัน 2 คืน + เส้นทาง + DAY 1/2/3 + ตารางเวลา + งบรวม” และจะแยกงบรวมออกจาก DAY สุดท้ายอัตโนมัติ</Text></View>
 
       <View style={s.card}>
         <Text style={s.label}>วันเริ่มเดินทาง</Text>
         <TextInput value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" placeholderTextColor={COLORS.textMuted} style={s.input}/>
         <View style={s.labelRow}><Text style={s.label}>ข้อความแผนเที่ยว</Text><Text style={[s.counter,tooLong&&s.counterDanger]}>{chars.toLocaleString()} / 120,000</Text></View>
-        <TextInput value={source} onChangeText={v=>{setSource(v);if(error)setError('');if(created)setCreated(null)}} multiline textAlignVertical="top" placeholder={'วางข้อความจาก ChatGPT หรือที่เขียนเอง\n\nDAY 1 — ตัวเมือง\n09:00 วัด...\n12:00 ร้านอาหาร...\nที่พัก: ...\nงบ: 2,000–3,000 บาท'} placeholderTextColor={COLORS.textMuted} style={s.textarea}/>
+        <TextInput value={source} onChangeText={v=>{setSource(v);if(error)setError('');if(created)setCreated(null)}} multiline textAlignVertical="top" placeholder={'ทริปราชบุรี 3 วัน 2 คืน\nเส้นทาง: กรุงเทพฯ → ดำเนินสะดวก → สวนผึ้ง → กรุงเทพฯ\n\nDAY 1 : ตลาดน้ำ + เมืองเก่า\n07:15–08:45 ตลาดน้ำดำเนินสะดวก\nเปิด: 07:00–13:00\nค่าเข้า: ฟรี\nงบอาหาร: 100–150 บาท/คน\n\nงบรวม\nที่พัก 2 คืน ~2,400–5,000 บาท\nรวม 2 คนประมาณ 8,800–15,000 บาท'} placeholderTextColor={COLORS.textMuted} style={s.textarea}/>
         <Text style={s.helper}>{preview}</Text>
         {!!error&&<View style={s.errorBox}><Ionicons name="alert-circle" size={18} color={COLORS.danger}/><Text style={s.errorText}>{error}</Text></View>}
-        {!!created&&<View style={s.successBox}><Ionicons name="checkmark-circle" size={21} color={COLORS.visited}/><View style={s.flex}><Text style={s.successTitle}>สร้างแผนสำเร็จ</Text><Text style={s.successText}>{created.title} · {created.days.length} วัน · {created.days.reduce((sum,d)=>sum+(d.schedule?.length||0),0)} ช่วงเวลา</Text></View></View>}
+        {!!created&&<View style={s.successBox}><Ionicons name="checkmark-circle" size={21} color={COLORS.visited}/><View style={s.flex}><Text style={s.successTitle}>สร้างแผนสำเร็จ</Text><Text style={s.successText}>{created.title} · {created.days.length} วัน · {created.days.reduce((sum,d)=>sum+(d.schedule?.length||0),0)} ช่วงเวลา · งบประมาณ {(created.budget||0).toLocaleString()} บาท</Text></View></View>}
         <Pressable disabled={!canCreate} style={[s.createButton,!canCreate&&s.disabled]} onPress={createFromText}><Ionicons name={working?'hourglass-outline':'sparkles'} size={18} color="#fff"/><Text style={s.createText}>{working?'กำลังสร้างแผน...':'แยกและสร้างแผนทันที'}</Text></Pressable>
         {!!created&&<Pressable style={s.viewButton} onPress={onViewPlans}><Ionicons name="create-outline" size={18} color={COLORS.primary}/><Text style={s.viewText}>ไปดูและแก้ไขแผน</Text></Pressable>}
       </View>
 
-      <View style={s.tip}><Ionicons name="information-circle-outline" size={18} color={COLORS.primary}/><Text style={s.tipText}>หลังสร้างเสร็จ กลับไป “ทำเองทั้งหมด” แล้วกด “แก้ไขทั้งหมด” เพื่อแก้ DAY, เวลา, สถานที่, งบ, ที่พัก, Checklist และหมายเหตุได้</Text></View>
+      <View style={s.tip}><Ionicons name="information-circle-outline" size={18} color={COLORS.primary}/><Text style={s.tipText}>ข้อมูลที่แยกจะถูกใส่ใน DAY, ช่วงเวลา, รายละเอียด, หมายเหตุ, งบรายวัน, งบรวม, เส้นทาง, ที่พัก, สรุปสถานที่ และ Checklist/คำเตือน แล้วกด “แก้ไขทั้งหมด” แก้ต่อได้</Text></View>
     </ScrollView>
   </View>;
 }
