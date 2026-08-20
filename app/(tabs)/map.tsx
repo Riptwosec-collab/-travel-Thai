@@ -16,7 +16,8 @@ const REGIONS:(Region|'ทั้งหมด')[]=['ทั้งหมด','ภ�
 
 export default function MapScreen(){
  const router=useRouter();
- const {width}=useWindowDimensions();
+ const viewport=useWindowDimensions();
+ const width=Platform.OS==='web'?402:viewport.width;
  const tablet=width>=760;
  const desktop=width>=1120;
  const [q,setQ]=useState('');
