@@ -1,2 +1,2 @@
-Deploy trigger: 2026-08-18 Thailand Glass contrast pass
-Reason: publish system-wide text readability and reference-style UI refinements.
+Deploy trigger: 2026-08-20T08:53:00+07:00
+Reason: production deploy after Vercel daily quota reset; publish latest Thailand Glass contrast and UI refinements.
