@@ -45,6 +45,7 @@ export interface TripScheduleItem {
   detail?: string;
   activities?: string[];
   notes?: string[];
+  completed?: boolean;
 }
 
 export interface TripDayBudgetItem {
