@@ -11,7 +11,7 @@ export default function RootLayout(){
    animation:'fade',
    gestureEnabled:true,
    fullScreenGestureEnabled:true,
-   contentStyle:{backgroundColor:GLASS.tealNight},
+   contentStyle:{backgroundColor:GLASS.teal},
   }}>
    <Stack.Screen name="(tabs)" options={{animation:'fade'}}/>
    <Stack.Screen name="place-detail" options={{presentation:'modal',animation:'slide_from_bottom',gestureEnabled:true}}/>

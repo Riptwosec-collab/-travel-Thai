@@ -15,7 +15,8 @@ export function GlassScreen({children,image}:{children:React.ReactNode;image:str
     return()=>loop.stop();
   },[zoom]);
   return <View style={styles.screen}>
-    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill,{transform:[{scale:zoom.interpolate({inputRange:[0,1],outputRange:[1.03,1.085]})}]}]}>
+    <View pointerEvents="none" style={styles.base}/>
+    <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill,{opacity:.96,transform:[{scale:zoom.interpolate({inputRange:[0,1],outputRange:[1.015,1.055]})}]}]}>
       <Image source={image} style={StyleSheet.absoluteFill} contentFit="cover" transition={350} cachePolicy="memory-disk"/>
     </Animated.View>
     <View pointerEvents="none" style={styles.photoWash}/>
@@ -25,6 +26,7 @@ export function GlassScreen({children,image}:{children:React.ReactNode;image:str
     <View pointerEvents="none" style={styles.edgeVignette}/>
     <View pointerEvents="none" style={styles.bloomA}/>
     <View pointerEvents="none" style={styles.bloomB}/>
+    <View pointerEvents="none" style={styles.horizon}/>
     {children}
   </View>;
 }
@@ -88,7 +90,7 @@ export function GlassProgress({value,height=7}:{value:number;height?:number}){
 export function GlassPageEnter({children,delay=0,style}:{children:React.ReactNode;delay?:number;style?:any}){
   const v=useRef(new Animated.Value(0)).current;
   useEffect(()=>{Animated.timing(v,{toValue:1,duration:520,delay,easing:Easing.out(Easing.cubic),useNativeDriver:true}).start()},[v,delay]);
-  return <Animated.View style={[style,{opacity:v,transform:[{translateY:v.interpolate({inputRange:[0,1],outputRange:[14,0]})}]}]}>{children}</Animated.View>;
+  return <Animated.View style={[style,{opacity:v,transform:[{translateY:v.interpolate({inputRange:[0,1],outputRange:[16,0]})},{scale:v.interpolate({inputRange:[0,1],outputRange:[.985,1]})}]}]}>{children}</Animated.View>;
 }
 
 export function GlassHeader({eyebrow,title,subtitle,right}:{eyebrow?:string;title:string;subtitle?:string;right?:React.ReactNode}){
@@ -107,20 +109,22 @@ const readableShadow = Platform.OS==='web'
   : ({textShadowColor:'rgba(0,24,33,.40)',textShadowOffset:{width:0,height:1},textShadowRadius:5} as any);
 
 const styles=StyleSheet.create({
-  screen:{flex:1,backgroundColor:GLASS.tealDeep,overflow:'hidden'},
-  photoWash:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(0,82,104,.14)'},
+  screen:{flex:1,backgroundColor:GLASS.tealNight,overflow:'hidden'},
+  base:{...StyleSheet.absoluteFillObject,backgroundColor:GLASS.tealNight},
+  photoWash:{...StyleSheet.absoluteFillObject,backgroundColor:'rgba(40,189,207,.08)'},
   topTint:{...StyleSheet.absoluteFillObject,backgroundColor:GLASS.overlayTop},
-  midTint:{position:'absolute',left:0,right:0,top:'28%',bottom:'24%',backgroundColor:GLASS.overlayMid},
-  bottomTint:{position:'absolute',left:0,right:0,bottom:0,height:'52%',backgroundColor:GLASS.overlayBottom},
+  midTint:{position:'absolute',left:0,right:0,top:'30%',bottom:'20%',backgroundColor:GLASS.overlayMid},
+  bottomTint:{position:'absolute',left:0,right:0,bottom:0,height:'44%',backgroundColor:GLASS.overlayBottom},
   edgeVignette:{...StyleSheet.absoluteFillObject,backgroundColor:GLASS.overlayVignette},
-  bloomA:{position:'absolute',width:360,height:360,borderRadius:180,top:-120,right:-90,backgroundColor:'rgba(115,240,248,.12)'},
-  bloomB:{position:'absolute',width:300,height:300,borderRadius:150,bottom:30,left:-110,backgroundColor:'rgba(244,214,155,.09)'},
+  bloomA:{position:'absolute',width:390,height:390,borderRadius:195,top:-142,right:-112,backgroundColor:'rgba(216,252,255,.19)'},
+  bloomB:{position:'absolute',width:330,height:330,borderRadius:165,bottom:20,left:-135,backgroundColor:'rgba(255,226,167,.08)'},
+  horizon:{position:'absolute',left:-80,right:-80,bottom:-130,height:240,borderRadius:240,backgroundColor:'rgba(28,188,204,.12)',borderTopWidth:1,borderTopColor:'rgba(236,255,255,.18)'},
   card:{borderRadius:GLASS_RADIUS.lg,overflow:'hidden'},
   reflection:{position:'absolute',left:18,right:18,top:0,height:1,backgroundColor:GLASS.highlight,zIndex:2},
-  cardShade:{position:'absolute',left:0,right:0,bottom:0,height:'44%',backgroundColor:'rgba(1,30,40,.10)'},
+  cardShade:{position:'absolute',left:0,right:0,bottom:0,height:'38%',backgroundColor:'rgba(3,74,91,.06)'},
   pressFill:{width:'100%',height:'100%',flexDirection:'row',alignItems:'center',justifyContent:'center'},
   circle:{alignItems:'center',justifyContent:'center',overflow:'hidden'},
-  search:{minHeight:58,borderRadius:GLASS_RADIUS.md,flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:16,overflow:'hidden'},
+  search:{minHeight:52,borderRadius:GLASS_RADIUS.md,flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:15,overflow:'hidden'},
   searchInput:{flex:1,color:GLASS.white,fontSize:14,fontWeight:'600',paddingVertical:0,...readableShadow},
   searchPlaceholder:{flex:1,color:'rgba(255,255,255,.91)',fontSize:14,fontWeight:'600',...readableShadow},
   searchTail:{width:34,height:34,borderRadius:17,backgroundColor:'rgba(255,255,255,.13)',borderWidth:1,borderColor:'rgba(255,255,255,.16)',alignItems:'center',justifyContent:'center'},
@@ -129,7 +133,7 @@ const styles=StyleSheet.create({
   chipText:{fontSize:11,fontWeight:'800',color:GLASS_TEXT.secondary,...readableShadow},
   chipTextActive:{color:GLASS.white},
   sectionHead:{flexDirection:'row',alignItems:'flex-end',justifyContent:'space-between',gap:12},
-  sectionTitle:{fontSize:21,fontWeight:'900',color:GLASS.white,letterSpacing:-.25,...readableShadow},
+  sectionTitle:{fontSize:18,fontWeight:'900',color:GLASS.white,letterSpacing:-.2,...readableShadow},
   sectionSub:{fontSize:11,fontWeight:'600',color:GLASS_TEXT.secondary,marginTop:3,...readableShadow},
   stat:{flex:1,minWidth:130,minHeight:112,padding:14},
   statIcon:{width:38,height:38,borderRadius:14,backgroundColor:'rgba(255,255,255,.13)',borderWidth:1,borderColor:'rgba(255,255,255,.14)',alignItems:'center',justifyContent:'center'},
