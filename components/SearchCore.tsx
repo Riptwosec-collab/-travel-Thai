@@ -1,65 +1,89 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import PlaceCard from '@/components/PlaceCard';
-import { GlassCard, GlassCircleButton, GlassPressable, GlassSection } from '@/components/glass';
-import { CATEGORIES, PLACES, PROVINCES } from '@/data/catalog';
-import { GLASS, GLASS_RADIUS, GLASS_TEXT, glassSurface } from '@/constants/glassTheme';
-import { Region } from '@/types';
+import { GlassCard, GlassCircleButton, GlassPressable } from '@/components/glass';
+import { PLACES, PROVINCES } from '@/data/catalog';
+import { GLASS, GLASS_TEXT } from '@/constants/glassTheme';
+import { useTravelStore } from '@/store/useTravelStore';
 
-const REGIONS:(Region|'ทั้งหมด')[]=['ทั้งหมด','ภาคเหนือ','ภาคอีสาน','ภาคกลาง','ภาคตะวันออก','ภาคตะวันตก','ภาคใต้'];
+const normalize=(value:string)=>value.toLowerCase().trim();
+const includes=(text:string,q:string)=>normalize(text).includes(q);
 
 export default function Search(){
- const router=useRouter();
- const [q,setQ]=useState('');
- const [category,setCategory]=useState('ทั้งหมด');
- const [region,setRegion]=useState<Region|'ทั้งหมด'>('ทั้งหมด');
- const [freeOnly,setFreeOnly]=useState(false);
- const places=useMemo(()=>PLACES.filter(p=>{const prov=PROVINCES.find(x=>x.id===p.provinceId);const text=`${p.name} ${p.province} ${p.tags.join(' ')}`.toLowerCase();return (!q||text.includes(q.toLowerCase()))&&(category==='ทั้งหมด'||p.category===category)&&(region==='ทั้งหมด'||prov?.region===region)&&(!freeOnly||p.ticketPrice.includes('ฟรี'));}),[q,category,region,freeOnly]);
- const provinces=useMemo(()=>PROVINCES.filter(p=>(!q||p.nameTh.includes(q)||p.nameEn.toLowerCase().includes(q.toLowerCase()))&&(region==='ทั้งหมด'||p.region===region)).slice(0,8),[q,region]);
+  const router=useRouter();
+  const {trips,journals}=useTravelStore();
+  const [q,setQ]=useState('');
+  const term=normalize(q);
 
- return <SafeAreaView style={s.safe} edges={['top']}>
-  <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-   <View style={s.header}>
-    <GlassCircleButton icon="chevron-back" onPress={()=>router.back()} label="กลับ"/>
-    <View style={{flex:1,minWidth:0}}><Text style={s.eyebrow}>DISCOVER THAILAND</Text><Text style={s.title}>ค้นหาสถานที่</Text></View>
-   </View>
+  const result=useMemo(()=>{
+    const provinces=PROVINCES.filter(p=>!term||includes(`${p.nameTh} ${p.nameEn} ${p.region} ${p.description}`,term)).slice(0,8);
+    const places=PLACES.filter(p=>!term||includes(`${p.name} ${p.province} ${p.category} ${p.tags.join(' ')} ${p.description}`,term)).slice(0,12);
+    const tripResults=trips.filter(t=>!term||includes(`${t.title} ${t.origin||''} ${t.destinationSummary||''} ${t.routeText||''} ${(t.routeStops||[]).join(' ')} ${(t.attractionsSummary||[]).join(' ')} ${(t.days||[]).flatMap(d=>(d.schedule||[]).map(x=>x.title)).join(' ')}`,term)).slice(0,8);
+    const journalResults=journals.filter(j=>!term||includes(`${j.title} ${j.note} ${j.mood}`,term)).slice(0,8);
+    return {provinces,places,trips:tripResults,journals:journalResults};
+  },[term,trips,journals]);
 
-   <GlassCard strong style={s.searchBox}>
-    <Ionicons name="search" size={20} color={GLASS.white}/>
-    <TextInput autoFocus value={q} onChangeText={setQ} placeholder="ทะเลใกล้กรุงเทพ, วัดเชียงใหม่, ที่เที่ยวฟรี..." placeholderTextColor="rgba(255,255,255,.78)" style={s.input}/>
-    {!!q&&<GlassPressable style={s.clear} onPress={()=>setQ('')}><Ionicons name="close-circle" size={20} color={GLASS_TEXT.secondary}/></GlassPressable>}
-   </GlassCard>
+  const total=result.provinces.length+result.places.length+result.trips.length+result.journals.length;
 
-   <GlassCard style={s.filters}>
-    <Text style={s.filterLabel}>ประเภท</Text>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>{CATEGORIES.map(x=><Chip key={x} label={x} on={category===x} onPress={()=>setCategory(x)}/>)}</ScrollView>
-    <Text style={s.filterLabel}>ภูมิภาค</Text>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>{REGIONS.map(x=><Chip key={x} label={x} on={region===x} onPress={()=>setRegion(x)}/>)}</ScrollView>
-    <GlassPressable style={[s.free,freeOnly&&s.freeOn]} onPress={()=>setFreeOnly(v=>!v)}><Ionicons name="pricetag" size={16} color={freeOnly?GLASS.white:GLASS.aqua}/><Text style={[s.freeText,freeOnly&&s.freeTextOn]}>เฉพาะที่เที่ยวฟรี</Text></GlassPressable>
-   </GlassCard>
+  return <SafeAreaView style={s.safe} edges={['top']}>
+    <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <View style={s.header}>
+        <GlassCircleButton icon="chevron-back" onPress={()=>router.back()} label="กลับ"/>
+        <View style={s.flex}><Text style={s.eyebrow}>UNIVERSAL SEARCH</Text><Text style={s.title}>ค้นหาทุกอย่าง</Text><Text style={s.subtitle}>จังหวัด · สถานที่ · ทริป · Journal</Text></View>
+      </View>
 
-   <GlassSection title="จังหวัดที่เกี่ยวข้อง" subtitle={`${provinces.length} จังหวัด`} />
-   <View style={s.provinces}>{provinces.map(p=><GlassPressable key={p.id} style={[s.province,glassSurface()]} onPress={()=>router.replace({pathname:'/province-detail',params:{id:p.id}})}><View style={{flex:1,minWidth:0}}><Text style={s.pname}>{p.nameTh}</Text><Text style={s.pregion}>{p.nameEn} · {p.region}</Text></View><Ionicons name="chevron-forward" size={16} color={GLASS_TEXT.tertiary}/></GlassPressable>)}</View>
+      <GlassCard strong style={s.searchBox}>
+        <Ionicons name="search" size={20} color={GLASS.white}/>
+        <TextInput autoFocus value={q} onChangeText={setQ} placeholder="เช่น ราชบุรี, เขากระโจม, ทริปสวนผึ้ง..." placeholderTextColor="rgba(255,255,255,.72)" style={s.input}/>
+        {!!q&&<GlassPressable style={s.clear} onPress={()=>setQ('')}><Ionicons name="close" size={19} color={GLASS_TEXT.secondary}/></GlassPressable>}
+      </GlassCard>
 
-   <View style={s.resultsHead}><GlassSection title={`สถานที่ (${places.length})`} subtitle="จัดตามความเกี่ยวข้อง" /></View>
-   {places.length?<View style={s.placeList}>{places.map(p=><PlaceCard key={p.id} place={p} compact/>)}</View>:<GlassCard style={s.empty}><View style={s.emptyIcon}><Ionicons name="search-outline" size={28} color={GLASS.aqua}/></View><Text style={s.emptyTitle}>ยังไม่พบผลลัพธ์</Text><Text style={s.emptyText}>ลองลดตัวกรองหรือใช้คำค้นอื่น</Text></GlassCard>}
-  </ScrollView>
- </SafeAreaView>
+      <View style={s.summaryRow}><Text style={s.summaryLabel}>{term?'ผลการค้นหา':'รายการล่าสุดและข้อมูลในแอป'}</Text><Text style={s.summaryCount}>{total} รายการ</Text></View>
+
+      <ResultSection icon="map-outline" title="จังหวัด" count={result.provinces.length}>
+        {result.provinces.map(p=><Pressable key={p.id} style={s.resultRow} onPress={()=>router.push({pathname:'/province-detail',params:{id:p.id}})}>
+          <View style={s.resultIcon}><Ionicons name="location-outline" size={18} color={GLASS.aqua}/></View><View style={s.flex}><Text style={s.resultTitle}>{p.nameTh}</Text><Text style={s.resultMeta}>{p.nameEn} · {p.region}</Text></View><Ionicons name="chevron-forward" size={17} color={GLASS_TEXT.tertiary}/>
+        </Pressable>)}
+      </ResultSection>
+
+      <ResultSection icon="compass-outline" title="สถานที่" count={result.places.length}>
+        {result.places.map(p=><Pressable key={p.id} style={s.resultRow} onPress={()=>router.push({pathname:'/place-detail',params:{id:p.id}})}>
+          <View style={s.resultIcon}><Ionicons name="pin-outline" size={18} color={GLASS.aqua}/></View><View style={s.flex}><Text style={s.resultTitle}>{p.name}</Text><Text style={s.resultMeta}>{p.province} · {p.category} · {p.ticketPrice}</Text></View><Ionicons name="chevron-forward" size={17} color={GLASS_TEXT.tertiary}/>
+        </Pressable>)}
+      </ResultSection>
+
+      <ResultSection icon="briefcase-outline" title="ทริปของฉัน" count={result.trips.length}>
+        {result.trips.map(t=><Pressable key={t.id} style={s.resultRow} onPress={()=>router.push('/trips')}>
+          <View style={s.resultIcon}><Ionicons name="calendar-outline" size={18} color={GLASS.aqua}/></View><View style={s.flex}><Text style={s.resultTitle}>{t.title}</Text><Text style={s.resultMeta}>{t.startDate} → {t.endDate} · {t.days?.length||0} วัน · {(t.budget||0).toLocaleString()}฿</Text>{!!t.routeText&&<Text numberOfLines={1} style={s.resultSub}>{t.routeText}</Text>}</View><Ionicons name="chevron-forward" size={17} color={GLASS_TEXT.tertiary}/>
+        </Pressable>)}
+      </ResultSection>
+
+      <ResultSection icon="book-outline" title="Journal" count={result.journals.length}>
+        {result.journals.map(j=><Pressable key={j.id} style={s.resultRow} onPress={()=>router.push('/journal')}>
+          <View style={s.resultIcon}><Ionicons name="document-text-outline" size={18} color={GLASS.aqua}/></View><View style={s.flex}><Text style={s.resultTitle}>{j.title}</Text><Text style={s.resultMeta}>{j.date} · {j.mood||'บันทึกการเดินทาง'}</Text>{!!j.note&&<Text numberOfLines={2} style={s.resultSub}>{j.note}</Text>}</View><Ionicons name="chevron-forward" size={17} color={GLASS_TEXT.tertiary}/>
+        </Pressable>)}
+      </ResultSection>
+
+      {term&&total===0&&<GlassCard style={s.empty}><View style={s.emptyIcon}><Ionicons name="search-outline" size={27} color={GLASS.aqua}/></View><Text style={s.emptyTitle}>ไม่พบ “{q}”</Text><Text style={s.emptyText}>ลองค้นชื่อจังหวัด สถานที่ ชื่อทริป หรือคำที่เคยเขียนใน Journal</Text></GlassCard>}
+    </ScrollView>
+  </SafeAreaView>;
 }
 
-function Chip({label,on,onPress}:{label:string;on:boolean;onPress:()=>void}){
- return <GlassPressable onPress={onPress} style={[s.chip,on&&s.chipOn]}><Text style={[s.chipText,on&&s.chipTextOn]}>{label}</Text></GlassPressable>
+function ResultSection({icon,title,count,children}:{icon:string;title:string;count:number;children:React.ReactNode}){
+  if(!count)return null;
+  return <GlassCard style={s.section}>
+    <View style={s.sectionHead}><View style={s.sectionIcon}><Ionicons name={icon as any} size={17} color={GLASS.aqua}/></View><Text style={s.sectionTitle}>{title}</Text><View style={s.countPill}><Text style={s.countText}>{count}</Text></View></View>
+    <View style={s.rows}>{children}</View>
+  </GlassCard>;
 }
 
 const s=StyleSheet.create({
- safe:{flex:1,backgroundColor:'transparent'},content:{padding:18,paddingBottom:120,gap:15,maxWidth:1260,width:'100%',alignSelf:'center'},
- header:{flexDirection:'row',alignItems:'center',gap:12},eyebrow:{fontSize:9,fontWeight:'900',letterSpacing:1.25,color:GLASS.gold},title:{fontSize:27,fontWeight:'900',color:GLASS.white,marginTop:2},
- searchBox:{minHeight:58,paddingHorizontal:15,flexDirection:'row',alignItems:'center',gap:9},input:{flex:1,color:GLASS.white,fontSize:13,fontWeight:'600',paddingVertical:0},clear:{width:34,height:34},
- filters:{padding:14,gap:10},filterLabel:{fontSize:11,fontWeight:'900',color:GLASS_TEXT.secondary},chips:{gap:8,paddingRight:8},chip:{minHeight:34,paddingHorizontal:11,borderRadius:999,backgroundColor:'rgba(255,255,255,.08)',borderWidth:1,borderColor:'rgba(255,255,255,.14)'},chipOn:{backgroundColor:'rgba(53,223,235,.24)',borderColor:'rgba(255,255,255,.38)'},chipText:{fontSize:10,fontWeight:'800',color:GLASS_TEXT.tertiary},chipTextOn:{color:GLASS.white},
- free:{alignSelf:'flex-start',minHeight:36,paddingHorizontal:11,borderRadius:999,backgroundColor:'rgba(255,255,255,.07)',borderWidth:1,borderColor:'rgba(255,255,255,.14)'},freeOn:{backgroundColor:'rgba(40,213,199,.24)',borderColor:'rgba(40,213,199,.58)'},freeText:{fontSize:10,fontWeight:'800',color:GLASS_TEXT.secondary,marginLeft:6},freeTextOn:{color:GLASS.white},
- provinces:{flexDirection:'row',flexWrap:'wrap',gap:9},province:{flex:1,minWidth:230,minHeight:64,borderRadius:GLASS_RADIUS.md,paddingHorizontal:12,paddingVertical:10,justifyContent:'flex-start'},pname:{fontSize:13,fontWeight:'900',color:GLASS.white},pregion:{fontSize:8,fontWeight:'700',color:GLASS_TEXT.tertiary,marginTop:3},
- resultsHead:{marginTop:2},placeList:{gap:12},empty:{padding:28,alignItems:'center'},emptyIcon:{width:56,height:56,borderRadius:19,backgroundColor:'rgba(115,240,248,.10)',alignItems:'center',justifyContent:'center'},emptyTitle:{fontSize:16,fontWeight:'900',color:GLASS.white,marginTop:10},emptyText:{fontSize:10,fontWeight:'600',color:GLASS_TEXT.tertiary,marginTop:4},
+  safe:{flex:1,backgroundColor:'transparent'},content:{paddingHorizontal:14,paddingTop:10,paddingBottom:120,gap:12,width:'100%',maxWidth:430,alignSelf:'center'},flex:{flex:1,minWidth:0},
+  header:{flexDirection:'row',alignItems:'center',gap:11},eyebrow:{fontSize:9,fontWeight:'900',letterSpacing:1.2,color:GLASS.gold},title:{fontSize:27,lineHeight:32,fontWeight:'900',color:GLASS.white,marginTop:2},subtitle:{fontSize:10.5,fontWeight:'700',color:GLASS_TEXT.secondary,marginTop:2},
+  searchBox:{minHeight:56,paddingHorizontal:13,flexDirection:'row',alignItems:'center',gap:9},input:{flex:1,minWidth:0,color:GLASS.white,fontSize:13,fontWeight:'700',paddingVertical:0},clear:{width:34,height:34,borderRadius:11},summaryRow:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10,paddingHorizontal:2},summaryLabel:{flex:1,fontSize:10.5,fontWeight:'800',color:GLASS_TEXT.secondary},summaryCount:{fontSize:10,fontWeight:'900',color:GLASS.gold},
+  section:{padding:0,overflow:'hidden'},sectionHead:{minHeight:52,paddingHorizontal:12,flexDirection:'row',alignItems:'center',gap:8,borderBottomWidth:1,borderBottomColor:'rgba(255,255,255,.10)'},sectionIcon:{width:32,height:32,borderRadius:10,backgroundColor:'rgba(115,240,248,.10)',alignItems:'center',justifyContent:'center'},sectionTitle:{flex:1,fontSize:13,fontWeight:'900',color:GLASS.white},countPill:{minWidth:28,height:26,paddingHorizontal:7,borderRadius:999,backgroundColor:'rgba(255,255,255,.10)',alignItems:'center',justifyContent:'center'},countText:{fontSize:9.5,fontWeight:'900',color:GLASS_TEXT.secondary},rows:{paddingHorizontal:9,paddingBottom:7},
+  resultRow:{minHeight:62,paddingHorizontal:4,paddingVertical:9,flexDirection:'row',alignItems:'center',gap:9,borderBottomWidth:1,borderBottomColor:'rgba(255,255,255,.08)'},resultIcon:{width:36,height:36,borderRadius:12,backgroundColor:'rgba(255,255,255,.08)',alignItems:'center',justifyContent:'center'},resultTitle:{fontSize:12.5,lineHeight:17,fontWeight:'900',color:GLASS.white},resultMeta:{fontSize:9,lineHeight:14,fontWeight:'700',color:GLASS_TEXT.tertiary,marginTop:2},resultSub:{fontSize:9,lineHeight:14,color:GLASS_TEXT.secondary,marginTop:2},
+  empty:{padding:24,alignItems:'center',gap:5},emptyIcon:{width:54,height:54,borderRadius:18,backgroundColor:'rgba(115,240,248,.10)',alignItems:'center',justifyContent:'center'},emptyTitle:{fontSize:15,fontWeight:'900',color:GLASS.white,marginTop:5},emptyText:{fontSize:10,lineHeight:16,color:GLASS_TEXT.tertiary,textAlign:'center'},
 });
