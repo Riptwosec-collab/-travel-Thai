@@ -2,7 +2,7 @@ import { Place, Province, Region } from '@/types';
 
 const IMG = {
   mountain: 'https://images.unsplash.com/photo-1621272036047-b79a415ff68d?auto=format&fit=crop&w=1200&q=80',
-  sea: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+  sea: 'https://images.unsplash.com/photo-1744894203354-76df001b04e9?auto=format&fit=crop&w=1800&q=88',
   temple: 'https://images.unsplash.com/photo-1582239460228-56fb060136fa?auto=format&fit=crop&w=1200&q=80',
   city: 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?auto=format&fit=crop&w=1200&q=80',
   forest: 'https://images.unsplash.com/photo-1511497584788-876760111969?auto=format&fit=crop&w=1200&q=80',
