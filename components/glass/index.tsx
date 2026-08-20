@@ -7,6 +7,7 @@ import { GLASS, GLASS_RADIUS, GLASS_TEXT, glassSurface } from '@/constants/glass
 export function GlassScreen({children,image}:{children:React.ReactNode;image:string}){
   const zoom=useRef(new Animated.Value(0)).current;
   useEffect(()=>{
+    if(Platform.OS==='web') return;
     const loop=Animated.loop(Animated.sequence([
       Animated.timing(zoom,{toValue:1,duration:12000,easing:Easing.inOut(Easing.sin),useNativeDriver:true}),
       Animated.timing(zoom,{toValue:0,duration:12000,easing:Easing.inOut(Easing.sin),useNativeDriver:true}),
@@ -16,7 +17,7 @@ export function GlassScreen({children,image}:{children:React.ReactNode;image:str
   },[zoom]);
   return <View style={styles.screen}>
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill,{transform:[{scale:zoom.interpolate({inputRange:[0,1],outputRange:[1.03,1.085]})}]}]}>
-      <Image source={image} style={StyleSheet.absoluteFill} contentFit="cover" transition={350} cachePolicy="memory-disk"/>
+      <Image source={image} style={StyleSheet.absoluteFill} contentFit="cover" transition={Platform.OS==='web'?0:350} cachePolicy="memory-disk"/>
     </Animated.View>
     <View pointerEvents="none" style={styles.photoWash}/>
     <View pointerEvents="none" style={styles.topTint}/>
@@ -40,12 +41,15 @@ export function GlassCard({children,style,strong=false}:{children:React.ReactNod
 export function GlassPressable({children,onPress,style,accessibilityLabel}:{children:React.ReactNode;onPress:()=>void;style?:any;accessibilityLabel?:string}){
   const scale=useRef(new Animated.Value(1)).current;
   const lift=useRef(new Animated.Value(0)).current;
-  const pressIn=()=>Animated.spring(scale,{toValue:.97,useNativeDriver:true,damping:15,stiffness:280,mass:.35}).start();
-  const pressOut=()=>Animated.spring(scale,{toValue:1,useNativeDriver:true,damping:14,stiffness:240,mass:.4}).start();
-  const hoverProps=Platform.OS==='web'?({
-    onMouseEnter:()=>Animated.spring(lift,{toValue:1,useNativeDriver:true,damping:17,stiffness:190}).start(),
-    onMouseLeave:()=>Animated.spring(lift,{toValue:0,useNativeDriver:true,damping:17,stiffness:190}).start(),
-  } as any):{};
+  const pressIn=()=>{
+    if(Platform.OS==='web') return;
+    Animated.spring(scale,{toValue:.97,useNativeDriver:true,damping:15,stiffness:280,mass:.35}).start();
+  };
+  const pressOut=()=>{
+    if(Platform.OS==='web') return;
+    Animated.spring(scale,{toValue:1,useNativeDriver:true,damping:14,stiffness:240,mass:.4}).start();
+  };
+  const hoverProps={};
   return <Animated.View {...hoverProps} style={[style,{transform:[{scale},{translateY:lift.interpolate({inputRange:[0,1],outputRange:[0,-4]})}]}]}>
     <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel} onPress={onPress} onPressIn={pressIn} onPressOut={pressOut} style={[styles.pressFill,style]}>{children}</Pressable>
   </Animated.View>;
@@ -80,14 +84,24 @@ export function GlassStatCard({icon,label,value,sub}:{icon:any;label:string;valu
 }
 
 export function GlassProgress({value,height=7}:{value:number;height?:number}){
-  const anim=useRef(new Animated.Value(0)).current;
-  useEffect(()=>{Animated.timing(anim,{toValue:Math.max(0,Math.min(100,value)),duration:700,easing:Easing.out(Easing.cubic),useNativeDriver:false}).start()},[value,anim]);
+  const clamped=Math.max(0,Math.min(100,value));
+  const anim=useRef(new Animated.Value(Platform.OS==='web'?clamped:0)).current;
+  useEffect(()=>{
+    if(Platform.OS==='web'){
+      anim.setValue(clamped);
+      return;
+    }
+    Animated.timing(anim,{toValue:clamped,duration:700,easing:Easing.out(Easing.cubic),useNativeDriver:false}).start();
+  },[clamped,anim]);
   return <View style={[styles.progress,{height}]}><Animated.View style={[styles.progressFill,{width:anim.interpolate({inputRange:[0,100],outputRange:['0%','100%']})}]}/></View>;
 }
 
 export function GlassPageEnter({children,delay=0,style}:{children:React.ReactNode;delay?:number;style?:any}){
-  const v=useRef(new Animated.Value(0)).current;
-  useEffect(()=>{Animated.timing(v,{toValue:1,duration:520,delay,easing:Easing.out(Easing.cubic),useNativeDriver:true}).start()},[v,delay]);
+  const v=useRef(new Animated.Value(Platform.OS==='web'?1:0)).current;
+  useEffect(()=>{
+    if(Platform.OS==='web') return;
+    Animated.timing(v,{toValue:1,duration:520,delay,easing:Easing.out(Easing.cubic),useNativeDriver:true}).start();
+  },[v,delay]);
   return <Animated.View style={[style,{opacity:v,transform:[{translateY:v.interpolate({inputRange:[0,1],outputRange:[14,0]})}]}]}>{children}</Animated.View>;
 }
 
