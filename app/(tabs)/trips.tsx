@@ -8,19 +8,19 @@ import { PLACES, PROVINCES } from '@/data/catalog';
 import { COLORS } from '@/constants/theme';
 
 type Mode='manual'|'import';
-
 type BoundaryProps={children:ReactNode;onReset:()=>void};
 type BoundaryState={error:string};
+
 class TripModeBoundary extends Component<BoundaryProps,BoundaryState>{
   state:BoundaryState={error:''};
   static getDerivedStateFromError(error:any){return {error:error?.message||'เกิดข้อผิดพลาดในหน้าแผนทริป'};}
   componentDidCatch(error:any,info:any){console.error('Trip planner UI error',error,info);}
   render(){
     if(this.state.error)return <View style={s.crashCard}>
-      <View style={s.crashIcon}><Ionicons name="alert-circle-outline" size={28} color={COLORS.danger}/></View>
+      <View style={s.crashIcon}><Ionicons name="alert-circle-outline" size={26} color={COLORS.danger}/></View>
       <Text style={s.crashTitle}>หน้าแผนทริปเกิดข้อผิดพลาด</Text>
       <Text style={s.crashText}>{this.state.error}</Text>
-      <Text style={s.crashHelp}>ข้อมูลทริปไม่ได้ถูกลบ กดกลับไปหน้า Manual แล้วลองเปิดใหม่ได้</Text>
+      <Text style={s.crashHelp}>ข้อมูลทริปยังอยู่ครบ กดกลับแล้วเปิดใหม่ได้</Text>
       <Pressable style={s.crashButton} onPress={()=>{this.setState({error:''});this.props.onReset();}}><Text style={s.crashButtonText}>กลับหน้าแผนทริป</Text></Pressable>
     </View>;
     return this.props.children;
@@ -37,14 +37,8 @@ export default function TripsGlass(){
   return <GlassScreen image={background}>
     <View style={s.root}>
       <View style={s.modeBar}>
-        <Pressable onPress={()=>switchMode('manual')} style={[s.modeButton,mode==='manual'&&s.modeButtonActive]}>
-          <Ionicons name="create-outline" size={17} color={mode==='manual'?'#fff':COLORS.text}/>
-          <View style={s.modeCopy}><Text style={[s.modeTitle,mode==='manual'&&s.modeTitleActive]}>ทำเองทั้งหมด</Text><Text style={[s.modeSub,mode==='manual'&&s.modeSubActive]}>สร้าง + แก้ไขทุกจุด</Text></View>
-        </Pressable>
-        <Pressable onPress={()=>switchMode('import')} style={[s.modeButton,mode==='import'&&s.modeButtonActive]}>
-          <Ionicons name="git-compare-outline" size={17} color={mode==='import'?'#fff':COLORS.text}/>
-          <View style={s.modeCopy}><Text style={[s.modeTitle,mode==='import'&&s.modeTitleActive]}>แยกแผนอัตโนมัติ</Text><Text style={[s.modeSub,mode==='import'&&s.modeSubActive]}>ข้อความ → DAY / เวลา / งบ</Text></View>
-        </Pressable>
+        <ModeButton active={mode==='manual'} icon="create-outline" title="ทำเองทั้งหมด" sub="สร้างและแก้ได้ทุกจุด" onPress={()=>switchMode('manual')}/>
+        <ModeButton active={mode==='import'} icon="git-compare-outline" title="แยกอัตโนมัติ" sub="ข้อความ → DAY / เวลา / งบ" onPress={()=>switchMode('import')}/>
       </View>
       <View style={s.body}>
         <TripModeBoundary key={boundaryKey} onReset={reset}>
@@ -55,13 +49,20 @@ export default function TripsGlass(){
   </GlassScreen>;
 }
 
+function ModeButton({active,icon,title,sub,onPress}:{active:boolean;icon:any;title:string;sub:string;onPress:()=>void}){
+  return <Pressable onPress={onPress} style={[s.modeButton,active&&s.modeButtonActive]}>
+    <View style={[s.modeIcon,active&&s.modeIconActive]}><Ionicons name={icon} size={18} color={active?'#fff':COLORS.primary}/></View>
+    <View style={s.modeCopy}><Text numberOfLines={1} style={[s.modeTitle,active&&s.modeTitleActive]}>{title}</Text><Text numberOfLines={2} style={[s.modeSub,active&&s.modeSubActive]}>{sub}</Text></View>
+  </Pressable>;
+}
+
 const s=StyleSheet.create({
   root:{flex:1,minHeight:0},
-  modeBar:{marginHorizontal:14,marginTop:9,marginBottom:2,padding:5,borderRadius:20,backgroundColor:'rgba(255,255,255,.72)',borderWidth:1,borderColor:'rgba(255,255,255,.60)',flexDirection:'row',gap:5},
-  modeButton:{flex:1,minWidth:0,minHeight:52,borderRadius:16,paddingHorizontal:8,paddingVertical:8,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6},
-  modeButtonActive:{backgroundColor:COLORS.dark},modeCopy:{flexShrink:1,minWidth:0},
-  modeTitle:{fontSize:10.5,fontWeight:'900',color:COLORS.text},modeTitleActive:{color:'#fff'},
-  modeSub:{fontSize:8.5,fontWeight:'700',color:COLORS.textMuted,marginTop:1},modeSubActive:{color:'rgba(255,255,255,.74)'},
+  modeBar:{marginHorizontal:12,marginTop:8,marginBottom:3,padding:4,borderRadius:18,backgroundColor:'rgba(255,255,255,.80)',borderWidth:1,borderColor:'rgba(255,255,255,.66)',flexDirection:'row',gap:5},
+  modeButton:{flex:1,minWidth:0,minHeight:64,borderRadius:14,paddingHorizontal:8,paddingVertical:7,flexDirection:'row',alignItems:'center',gap:7},
+  modeButtonActive:{backgroundColor:COLORS.dark},
+  modeIcon:{width:34,height:34,borderRadius:11,backgroundColor:'rgba(232,246,246,.92)',alignItems:'center',justifyContent:'center',flexShrink:0},modeIconActive:{backgroundColor:'rgba(255,255,255,.13)'},
+  modeCopy:{flex:1,minWidth:0},modeTitle:{fontSize:11.5,lineHeight:15,fontWeight:'900',color:COLORS.text},modeTitleActive:{color:'#fff'},modeSub:{fontSize:9,lineHeight:12,fontWeight:'700',color:COLORS.textMuted,marginTop:2},modeSubActive:{color:'rgba(255,255,255,.72)'},
   body:{flex:1,minHeight:0},
-  crashCard:{margin:16,padding:18,borderRadius:22,backgroundColor:'rgba(255,255,255,.92)',borderWidth:1,borderColor:'rgba(255,255,255,.74)',alignItems:'center',gap:9},crashIcon:{width:52,height:52,borderRadius:17,backgroundColor:'rgba(224,92,102,.10)',alignItems:'center',justifyContent:'center'},crashTitle:{fontSize:18,fontWeight:'900',color:COLORS.text,textAlign:'center'},crashText:{fontSize:11,color:COLORS.danger,textAlign:'center',lineHeight:17},crashHelp:{fontSize:11,color:COLORS.textMuted,textAlign:'center',lineHeight:17},crashButton:{marginTop:3,minHeight:46,paddingHorizontal:18,borderRadius:14,backgroundColor:COLORS.dark,alignItems:'center',justifyContent:'center'},crashButtonText:{color:'#fff',fontWeight:'900'},
+  crashCard:{margin:14,padding:17,borderRadius:20,backgroundColor:'rgba(255,255,255,.94)',borderWidth:1,borderColor:'rgba(255,255,255,.76)',alignItems:'center',gap:8},crashIcon:{width:48,height:48,borderRadius:16,backgroundColor:'rgba(224,92,102,.10)',alignItems:'center',justifyContent:'center'},crashTitle:{fontSize:17,fontWeight:'900',color:COLORS.text,textAlign:'center'},crashText:{fontSize:11,color:COLORS.danger,textAlign:'center',lineHeight:17},crashHelp:{fontSize:11,color:COLORS.textMuted,textAlign:'center',lineHeight:17},crashButton:{marginTop:3,minHeight:46,width:'100%',borderRadius:14,backgroundColor:COLORS.dark,alignItems:'center',justifyContent:'center'},crashButtonText:{color:'#fff',fontWeight:'900'},
 });
